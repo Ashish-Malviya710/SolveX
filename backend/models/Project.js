@@ -16,11 +16,13 @@ const ProjectSchema = new mongoose.Schema(
     preferredTechnologies: { type: String },
     requiredSkills: [{ type: String, trim: true }],
 
-    // AI Problem Analysis (single call — Section 7)
+    // AI Problem Analysis & Discovery
     aiSummary: String,
     aiSuggestedFeatures: [String],
     aiSuggestedSkills: [String],
     aiComplexity: { type: String, enum: ["Simple", "Moderate", "Complex"] },
+    discoverySession: { type: mongoose.Schema.Types.ObjectId, ref: "ProjectDiscovery" },
+    blueprint: { type: mongoose.Schema.Types.Mixed },
 
     teamMembers: [
       {
@@ -28,6 +30,8 @@ const ProjectSchema = new mongoose.Schema(
         role: { type: String, enum: ["Leader", "Contributor", "Reviewer"], default: "Contributor" },
         customRole: { type: String, trim: true },
         joinedAt: { type: Date, default: Date.now },
+        status: { type: String, enum: ["ACTIVE", "VACANT"], default: "ACTIVE" },
+        vacatedAt: Date,
       },
     ],
     maxTeamSize: { type: Number, default: 5 },

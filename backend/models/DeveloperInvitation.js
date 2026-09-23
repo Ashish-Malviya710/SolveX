@@ -11,6 +11,10 @@ const DeveloperInvitationSchema = new mongoose.Schema(
       enum: ["PENDING", "ACCEPTED", "REJECTED"],
       default: "PENDING",
     },
+    // Backup Developer Matching — tracks which vacant slot this invitation fills
+    replacingUserId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    vacantRole: { type: String, trim: true },
+    vacantCustomRole: { type: String, trim: true },
   },
   { timestamps: true }
 );

@@ -13,10 +13,16 @@
 
 ## 🚀 Key Features
 
-### 🧠 1. AI-Powered Problem Blueprinting
-- **Groq LLaMA 3.3 Engine**: Automatically turns non-technical problem descriptions into structured software engineering specifications.
-- **Automated Blueprint Generation**: Produces an executive summary, modular feature breakdown, required technology stack, and complexity estimation.
-- **Smart Heuristic Fallback**: An intelligent local parsing engine ensures seamless operation even if third-party AI APIs are unavailable.
+### 🧠 1. AI Project Discovery & Dynamic Blueprinting
+- **Multilingual Discovery Support**: Supports **English**, **Hindi** (`हिंदी`), and **Hinglish** dynamically. Users can select their preferred language before starting discovery or switch languages anytime mid-session while preserving all answers and context.
+- **Multilingual Understanding**: The AI accepts and understands mixed-language responses (e.g. answering in English/Hinglish to Hindi prompts) and responds consistently in the active session language.
+- **Technical Term Preservation**: Standard technical terminology (React, Node.js, MongoDB, API, JWT, GitHub, REST, Socket.IO, Docker, etc.) is preserved without awkward literal translation.
+- **Conversational AI Product Analyst**: Transforms natural language problem ideas into complete, production-ready engineering blueprints through an adaptive multi-turn interview.
+- **100% Dynamic, Non-Hardcoded Questioning**: Context-aware questions (single-choice, multi-select chips, text, boolean) generated dynamically per domain with zero hardcoded templates in any language.
+- **Adaptive Follow-Ups & Readiness Engine**: Progressive readiness scoring tracking specification completeness and turning limits.
+- **Automated Unique Technical Blueprint**: Synthesizes architecture narratives, modular features, technology stack recommendations, developer roles with required skills, phased milestones, and risk evaluations in the selected language.
+- **Interactive Review & AI Revision**: Problem providers can edit sections directly or prompt the AI to revise specific requirements before confirming.
+- **Automated Developer Matching**: Extracted developer skills and roles automatically integrate with SolveX's developer recommendation and replacement engine.
 
 ### 👥 2. Multi-Role Ecosystem
 - **Problem Providers (NGOs & Organizations)**:
@@ -57,6 +63,13 @@ Secure, context-aware project communication:
 
 ### 🔗 6. GitHub Integration & Impact Showcase
 - **Repository Metadata Sync**: Fetches real-time GitHub repository statistics (stars, forks, open issues, primary language, latest commit timestamp).
+- **GitHub Issues Integration**: Live view of GitHub repository issues with status badges, assignees, labels, and issue creation directly from SolveX.
+- **Pull Requests & Review Tracking**: Live PR feed showing branches, status (Open/Merged/Closed), and review statuses (Approved, Changes Requested, Commented).
+- **GitHub Milestones**: Track GitHub milestones, progress percentages, and optionally link them directly to SolveX project proposal milestones.
+- **Contribution Analysis & Scoring**: Quantified contributor breakdown with transparent scoring:
+  $$\text{Score} = (\text{Commits} \times 1) + (\text{PRs} \times 3) + (\text{Merged PRs} \times 5) + (\text{Issues} \times 2) + (\text{Reviews} \times 2)$$
+- **Backup Developer Matching**: When a team member becomes inactive or leaves, project leaders can mark the slot as `VACANT` (preserving historic contributions), search AI/skill-ranked candidate replacements, and dispatch direct replacement invitations.
+- **Combined Progress & Activity Timeline**: Unified dashboard comparing SolveX and GitHub milestone delivery, commit velocity, and chronological activity feed.
 - **Public Impact Showcase**: Highlights completed solutions with live demo links, repository links, solution summaries, and client feedback.
 
 ---
@@ -156,6 +169,10 @@ JWT_SECRET=your_secure_jwt_secret_key
 JWT_EXPIRE=30d
 CLIENT_URL=http://localhost:3000
 
+# GitHub Personal Access Token (PAT) with 'repo' scope
+# Required for GitHub Issues, PRs, Milestones, and Contribution Analysis
+GITHUB_TOKEN=your_github_pat_here
+
 # Optional: Groq LLM API Key (if omitted, smart local heuristic engine will be used)
 GROQ_API_KEY=your_groq_api_key_here
 GROQ_MODEL=llama-3.3-70b-versatile
@@ -231,14 +248,36 @@ After running `npm run seed`, you can immediately sign in with any of the follow
 | **AI** | `/api/ai/analyze-problem` | Groq LLaMA requirement analysis and blueprint generation |
 | **Developers** | `/api/developers` | Developer directory, leaderboards, top performers |
 | **Requests** | `/api/requests` | Developer project join applications and status management |
-| **Invitations** | `/api/invitations` | Provider/Leader invites to developers |
-| **Proposals** | `/api/proposals` | Leader milestone proposals and client acceptance workflows |
-| **Teams** | `/api/teams` | Team roster management, role assignments, removals |
+| **Invitations** | `/api/invitations` | Provider/Leader invites to developers (including vacant slot replacements) |
+| **Proposals** | `/api/proposals` | Leader milestone proposals, client acceptance, and GitHub milestone linking |
+| **Teams** | `/api/teams` | Team roster management, vacant slot marking, replacement candidate search |
 | **Messages** | `/api/messages` | Channel chat history retrieval |
-| **GitHub** | `/api/github` | Repository statistics and commit activity polling |
+| **GitHub** | `/api/github` | Issues, PRs & reviews, milestones, contributions, progress, activity |
 | **Impact** | `/api/impact` | Metrics, completed project showcase data, ratings |
 | **Notifications** | `/api/notifications` | User notifications and read status updates |
 | **Admin** | `/api/admin` | Platform statistics, moderation, and user management |
+
+#### Key AI Project Discovery Endpoints
+- `POST /api/projects/discovery/start` — Start an AI discovery interview with an initial problem idea & language (`en`, `hi`, `hinglish`)
+- `GET /api/projects/discovery/:id` — Retrieve discovery session state, interview history & blueprint
+- `PATCH /api/projects/discovery/:id/language` — Update discovery session language mid-session and regenerate current question
+- `POST /api/projects/discovery/:id/answer` — Submit answer to dynamic question and receive adaptive follow-up
+- `POST /api/projects/discovery/:id/generate-blueprint` — Synthesize full technical project blueprint
+- `PUT /api/projects/discovery/:id/blueprint` — Edit blueprint or request AI natural language revision
+- `POST /api/projects/discovery/:id/regenerate` — Regenerate fresh blueprint version
+- `POST /api/projects/discovery/:id/complete` — Confirm blueprint and create/launch SolveX project
+- `GET /api/github/projects/:projectId/issues` — Fetch project GitHub issues with summary counts
+- `POST /api/github/projects/:projectId/issues` — Create a new GitHub issue
+- `GET /api/github/projects/:projectId/pulls` — Fetch pull requests with merge/open/closed stats
+- `GET /api/github/projects/:projectId/pulls/:prNumber/reviews` — Fetch PR reviews (Approved/Changes Requested/Commented)
+- `GET /api/github/projects/:projectId/milestones` — Fetch GitHub milestones and progress
+- `PUT /api/proposals/:id/milestones/:idx/github-link` — Link a SolveX milestone to a GitHub milestone
+- `GET /api/github/projects/:projectId/contributions` — Per-developer contribution analysis & scores
+- `GET /api/github/projects/:projectId/progress` — Combined health & milestone delivery metrics
+- `GET /api/github/projects/:projectId/activity` — Chronological GitHub activity timeline
+- `PUT /api/teams/:id/members/:userId/vacant` — Mark team member slot as VACANT
+- `GET /api/teams/:id/members/:userId/replacements` — Find ranked replacement developer candidates
+- `POST /api/teams/:id/members/:userId/invite-replacement` — Dispatch replacement invitation
 
 ---
 

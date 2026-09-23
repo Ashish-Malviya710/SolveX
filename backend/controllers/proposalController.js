@@ -248,3 +248,37 @@ exports.updateMilestoneStatus = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+/**
+ * PUT /api/proposals/:id/milestones/:milestoneIndex/github-link
+ * Link a SolveX milestone to a GitHub milestone number.
+ */
+exports.linkGithubMilestone = async (req, res) => {
+  try {
+    const proposal = await ProjectProposal.findById(req.params.id);
+    if (!proposal) return res.status(404).json({ message: "Proposal not found" });
+
+    if (proposal.leader.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Only the Project Leader can link milestones" });
+    }
+
+    const idx = parseInt(req.params.milestoneIndex);
+    if (isNaN(idx) || idx < 0 || idx >= proposal.milestones.length) {
+      return res.status(400).json({ message: "Invalid milestone index" });
+    }
+
+    const { githubMilestoneNumber } = req.body;
+    if (githubMilestoneNumber === undefined || githubMilestoneNumber === null) {
+      // Unlink
+      proposal.milestones[idx].githubMilestoneNumber = undefined;
+    } else {
+      proposal.milestones[idx].githubMilestoneNumber = Number(githubMilestoneNumber);
+    }
+
+    await proposal.save();
+    res.status(200).json({ proposal, message: "GitHub milestone linked successfully" });
+  } catch (err) {
+    console.error("Link GitHub milestone error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};

@@ -9,6 +9,26 @@ const { createRequest, getProjectRequests } = require("../controllers/requestCon
 const { createInvitation, getProjectInvitations } = require("../controllers/invitationController");
 const { addMember, removeMember, updateMemberRole, getTeam } = require("../controllers/teamController");
 const { createProposal, getProposal } = require("../controllers/proposalController");
+const {
+  startDiscovery,
+  getDiscoverySession,
+  answerQuestion,
+  generateBlueprint,
+  updateBlueprint,
+  regenerateBlueprint,
+  completeDiscovery,
+  updateLanguage,
+} = require("../controllers/discoveryController");
+
+// AI Project Discovery (Must be declared before /:id routes)
+router.post("/discovery/start", protect, authorize("PROBLEM_PROVIDER", "ADMIN"), startDiscovery);
+router.get("/discovery/:id", protect, getDiscoverySession);
+router.patch("/discovery/:id/language", protect, updateLanguage);
+router.post("/discovery/:id/answer", protect, answerQuestion);
+router.post("/discovery/:id/generate-blueprint", protect, generateBlueprint);
+router.put("/discovery/:id/blueprint", protect, updateBlueprint);
+router.post("/discovery/:id/regenerate", protect, regenerateBlueprint);
+router.post("/discovery/:id/complete", protect, completeDiscovery);
 
 // Project CRUD
 router.get("/showcase", getShowcaseProjects);

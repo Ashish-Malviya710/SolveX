@@ -24,6 +24,7 @@ const ProjectProposalSchema = new mongoose.Schema(
           enum: ["Pending", "In Progress", "Completed"],
           default: "Pending",
         },
+        githubMilestoneNumber: Number, // optional link to GitHub milestone
       },
     ],
     status: {

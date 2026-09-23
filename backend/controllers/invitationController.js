@@ -123,6 +123,62 @@ exports.acceptInvitation = async (req, res) => {
     invitation.status = "ACCEPTED";
     await invitation.save();
 
+    // ─── Replacement Invitation Flow ───
+    if (invitation.replacingUserId) {
+      // Fill the vacant slot instead of adding a new member
+      const vacantSlot = project.teamMembers.find(
+        (m) => m.user?.toString() === invitation.replacingUserId.toString() && m.status === "VACANT"
+      );
+
+      if (vacantSlot) {
+        // Replace the vacant member with the new developer
+        vacantSlot.user = req.user._id;
+        vacantSlot.status = "ACTIVE";
+        vacantSlot.joinedAt = new Date();
+        vacantSlot.vacatedAt = undefined;
+        // Keep the role from the vacant slot (or use the invitation role)
+        if (invitation.vacantRole) vacantSlot.role = invitation.vacantRole;
+        if (invitation.vacantCustomRole) vacantSlot.customRole = invitation.vacantCustomRole;
+      } else {
+        // Vacant slot not found — fallback to normal add
+        if (project.teamMembers.length >= project.maxTeamSize) {
+          return res.status(400).json({ message: "Team is full" });
+        }
+        project.teamMembers.push({
+          user: req.user._id,
+          role: invitation.vacantRole || "Contributor",
+          customRole: invitation.vacantCustomRole,
+        });
+      }
+
+      await project.save();
+      await applyRequestAcceptedReputation(req.user._id);
+
+      // Notify with replacement-specific message
+      await createNotification(
+        invitation.provider,
+        "REPLACEMENT_JOINED",
+        `${req.user.name} has joined "${project.title}" as a replacement ${invitation.vacantCustomRole || invitation.vacantRole || "team member"}.`,
+        { projectId: project._id }
+      );
+
+      // Notify leader if different from the inviter
+      if (
+        project.projectLeader &&
+        project.projectLeader.toString() !== invitation.provider.toString()
+      ) {
+        await createNotification(
+          project.projectLeader,
+          "REPLACEMENT_JOINED",
+          `${req.user.name} has filled the vacant ${invitation.vacantCustomRole || invitation.vacantRole || ""} position in "${project.title}".`,
+          { projectId: project._id }
+        );
+      }
+
+      return res.status(200).json({ message: "Replacement accepted — position filled!", project });
+    }
+
+    // ─── Normal Invitation Flow (existing behavior preserved) ───
     if (!project.projectLeader) {
       // No leader yet → become leader
       project.projectLeader = req.user._id;

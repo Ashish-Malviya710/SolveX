@@ -20,10 +20,30 @@ import {
   FiPlus,
   FiRefreshCw,
   FiLock,
+  FiGitPullRequest,
+  FiGitCommit,
+  FiTarget,
+  FiActivity,
+  FiTrendingUp,
+  FiUserMinus,
+  FiUserPlus,
+  FiSearch,
+  FiTag,
+  FiMessageCircle,
+  FiAward,
+  FiCheck,
+  FiCode,
+  FiLayers,
 } from "react-icons/fi";
 import { AuthContext } from "../../context/AuthContext";
 import api from "../../services/api";
 import { useSocket } from "../../hooks/useSocket";
+import {
+  getGithubIssues, createGithubIssue, getGithubPulls, getPRReviews,
+  getGithubMilestones, getContributions, getProjectProgress,
+  getActivityTimeline, markMemberVacant, findReplacements, inviteReplacement,
+  linkGithubMilestone,
+} from "../../services/githubApi";
 
 const ProjectDetails = () => {
   const { id } = useParams();
@@ -45,6 +65,38 @@ const ProjectDetails = () => {
   const [githubStats, setGithubStats] = useState(null);
   const [loadingGithub, setLoadingGithub] = useState(false);
   const [repoInput, setRepoInput] = useState("");
+
+  // GitHub Issues / PRs / Milestones
+  const [ghIssues, setGhIssues] = useState(null);
+  const [ghPulls, setGhPulls] = useState(null);
+  const [ghMilestones, setGhMilestones] = useState(null);
+  const [ghSubTab, setGhSubTab] = useState("issues");
+  const [loadingGhData, setLoadingGhData] = useState(false);
+  const [createIssueOpen, setCreateIssueOpen] = useState(false);
+  const [newIssueTitle, setNewIssueTitle] = useState("");
+  const [newIssueBody, setNewIssueBody] = useState("");
+  const [creatingIssue, setCreatingIssue] = useState(false);
+  const [expandedPR, setExpandedPR] = useState(null);
+  const [prReviews, setPrReviews] = useState({});
+
+  // Contributions
+  const [contributions, setContributions] = useState(null);
+  const [loadingContributions, setLoadingContributions] = useState(false);
+
+  // Project Progress
+  const [progressData, setProgressData] = useState(null);
+  const [loadingProgress, setLoadingProgress] = useState(false);
+
+  // Activity Timeline
+  const [activityTimeline, setActivityTimeline] = useState(null);
+  const [loadingActivity, setLoadingActivity] = useState(false);
+
+  // Backup Developer Matching
+  const [vacantModalUserId, setVacantModalUserId] = useState(null);
+  const [replacementCandidates, setReplacementCandidates] = useState(null);
+  const [loadingReplacements, setLoadingReplacements] = useState(false);
+  const [replacementModalOpen, setReplacementModalOpen] = useState(false);
+  const [replacementVacantInfo, setReplacementVacantInfo] = useState(null);
 
   // Solution Submission Form
   const [solutionSummary, setSolutionSummary] = useState("");
@@ -171,7 +223,169 @@ const ProjectDetails = () => {
     }
   }, [activeTab, project?.githubRepoUrl]);
 
+  // Fetch GitHub Issues / PRs / Milestones when github tab is active
+  useEffect(() => {
+    if (activeTab === "github" && project?.githubRepoUrl && hasGitAccess) {
+      const fetchGhData = async () => {
+        setLoadingGhData(true);
+        try {
+          const [issuesRes, pullsRes, msRes] = await Promise.all([
+            getGithubIssues(id).catch(() => null),
+            getGithubPulls(id).catch(() => null),
+            getGithubMilestones(id).catch(() => null),
+          ]);
+          if (issuesRes?.data) setGhIssues(issuesRes.data);
+          if (pullsRes?.data) setGhPulls(pullsRes.data);
+          if (msRes?.data) setGhMilestones(msRes.data);
+        } catch (err) {
+          console.error("GitHub data fetch error:", err);
+        } finally {
+          setLoadingGhData(false);
+        }
+      };
+      fetchGhData();
+    }
+  }, [activeTab, project?.githubRepoUrl, id]);
+
+  // Fetch Contributions when tab is active
+  useEffect(() => {
+    if (activeTab === "contributions" && project?.githubRepoUrl) {
+      const fetchContribs = async () => {
+        setLoadingContributions(true);
+        try {
+          const res = await getContributions(id);
+          setContributions(res.data);
+        } catch (err) {
+          console.error("Contributions fetch error:", err);
+        } finally {
+          setLoadingContributions(false);
+        }
+      };
+      fetchContribs();
+    }
+  }, [activeTab, id, project?.githubRepoUrl]);
+
+  // Fetch Progress when tab is active
+  useEffect(() => {
+    if (activeTab === "progress" && project?.githubRepoUrl) {
+      const fetchProgress = async () => {
+        setLoadingProgress(true);
+        try {
+          const res = await getProjectProgress(id);
+          setProgressData(res.data);
+        } catch (err) {
+          console.error("Progress fetch error:", err);
+        } finally {
+          setLoadingProgress(false);
+        }
+      };
+      fetchProgress();
+    }
+  }, [activeTab, id, project?.githubRepoUrl]);
+
+  // Fetch Activity Timeline when tab is active
+  useEffect(() => {
+    if (activeTab === "activity" && project?.githubRepoUrl) {
+      const fetchActivity = async () => {
+        setLoadingActivity(true);
+        try {
+          const res = await getActivityTimeline(id);
+          setActivityTimeline(res.data.timeline);
+        } catch (err) {
+          console.error("Activity fetch error:", err);
+        } finally {
+          setLoadingActivity(false);
+        }
+      };
+      fetchActivity();
+    }
+  }, [activeTab, id, project?.githubRepoUrl]);
+
+  // ─── New Handlers ───
+
+  const handleCreateIssue = async (e) => {
+    e.preventDefault();
+    setCreatingIssue(true);
+    try {
+      await createGithubIssue(id, { title: newIssueTitle, body: newIssueBody });
+      setActionSuccess("GitHub issue created successfully!");
+      setCreateIssueOpen(false);
+      setNewIssueTitle("");
+      setNewIssueBody("");
+      // Refresh issues
+      const res = await getGithubIssues(id);
+      if (res?.data) setGhIssues(res.data);
+    } catch (err) {
+      setActionError(err.response?.data?.message || "Failed to create GitHub issue.");
+    } finally {
+      setCreatingIssue(false);
+    }
+  };
+
+  const handleLoadPRReviews = async (prNumber) => {
+    if (prReviews[prNumber]) return; // Already loaded
+    try {
+      const res = await getPRReviews(id, prNumber);
+      setPrReviews((prev) => ({ ...prev, [prNumber]: res.data }));
+    } catch (err) {
+      console.error("PR reviews fetch error:", err);
+    }
+  };
+
+  const handleMarkVacant = async (memberId) => {
+    try {
+      const res = await markMemberVacant(id, memberId);
+      setActionSuccess(res.data.message);
+      setVacantModalUserId(null);
+      fetchProjectData();
+    } catch (err) {
+      setActionError(err.response?.data?.message || "Failed to mark member as vacant.");
+    }
+  };
+
+  const handleFindReplacements = async (memberId) => {
+    setLoadingReplacements(true);
+    setReplacementModalOpen(true);
+    try {
+      const res = await findReplacements(id, memberId);
+      setReplacementCandidates(res.data.candidates);
+      setReplacementVacantInfo({
+        userId: memberId,
+        role: res.data.vacantRole,
+        customRole: res.data.vacantCustomRole,
+        requiredSkills: res.data.requiredSkills,
+      });
+    } catch (err) {
+      setActionError(err.response?.data?.message || "Failed to find replacements.");
+      setReplacementModalOpen(false);
+    } finally {
+      setLoadingReplacements(false);
+    }
+  };
+
+  const handleInviteReplacement = async (developerId) => {
+    if (!replacementVacantInfo) return;
+    try {
+      await inviteReplacement(id, replacementVacantInfo.userId, { developerId });
+      setActionSuccess("Replacement invitation sent!");
+      setReplacementModalOpen(false);
+      setReplacementCandidates(null);
+    } catch (err) {
+      setActionError(err.response?.data?.message || "Failed to invite replacement.");
+    }
+  };
+
+  // Helper: hasGitAccess depends on computed values
+  const _hasGitAccess = () => {
+    const _isLeader = user && project && project.projectLeader?._id === user._id;
+    const _isMember = user && project && project.teamMembers?.some((m) => m.user?._id === user._id);
+    const _isAdmin = user && user.role === "ADMIN";
+    const _isProvider = user && project && project.problemProvider?._id === user._id;
+    return _isLeader || _isMember || (_isProvider && project?.allowProviderGitAccess) || _isAdmin;
+  };
+
   // Helper flags
+
   const isProvider = user && project && project.problemProvider?._id === user._id;
   const isLeader = user && project && project.projectLeader?._id === user._id;
   const isMember = user && project && project.teamMembers?.some((m) => m.user?._id === user._id);
@@ -458,11 +672,17 @@ const ProjectDetails = () => {
         <div className="tab-list pt-2">
           {[
             { id: "overview", label: "Overview", icon: FiFileText },
+            ...(project?.blueprint ? [{ id: "blueprint", label: "Technical Blueprint", icon: FiCpu }] : []),
             { id: "requirements", label: "AI Requirements", icon: FiCpu },
             { id: "team", label: `Team (${project.teamMembers?.length || 0}/${project.maxTeamSize})`, icon: FiUsers },
             ...(isParticipant ? [{ id: "chat", label: "Project Chat", icon: FiMessageSquare }] : []),
             { id: "proposal", label: "Project Structure", icon: FiCheckSquare },
             ...(isParticipant ? [{ id: "github", label: "GitHub Grid", icon: FiGithub }] : []),
+            ...(isParticipant && project?.githubRepoUrl ? [
+              { id: "contributions", label: "Contributions", icon: FiAward },
+              { id: "progress", label: "Progress", icon: FiTrendingUp },
+              { id: "activity", label: "Activity", icon: FiActivity },
+            ] : []),
             { id: "solution", label: "Solution & Delivery", icon: FiCheckCircle },
             { id: "impact", label: "Social Impact", icon: FiHeart },
           ].map((tab) => {
@@ -618,6 +838,146 @@ const ProjectDetails = () => {
               ) : (
                 <p className="text-xs text-gray-500 italic">No leader selected yet.</p>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 1.5 TECHNICAL BLUEPRINT TAB */}
+      {activeTab === "blueprint" && project?.blueprint && (
+        <div className="space-y-6">
+          {/* Executive Summary Card */}
+          <div className="glass-card p-6 sm:p-8 space-y-4">
+            <div className="flex items-center justify-between pb-4 border-b border-dark-700/60 flex-wrap gap-4">
+              <div>
+                <span className="badge badge-primary text-xs py-1 px-3 mb-2 inline-block">
+                  Verified Technical Blueprint
+                </span>
+                <h2 className="text-xl sm:text-2xl font-bold font-display text-white">
+                  {project.blueprint.title || project.title}
+                </h2>
+                <p className="text-xs text-gray-400 mt-1">
+                  Architecture: <strong className="text-gray-200">{project.blueprint.architecture?.type || "Full-Stack"}</strong> • Estimated Complexity: <strong className="text-primary-400">{project.blueprint.complexity || project.aiComplexity || "Moderate"}</strong>
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                Executive Overview
+              </h4>
+              <p className="text-sm text-gray-200 leading-relaxed whitespace-pre-line">
+                {project.blueprint.overview}
+              </p>
+            </div>
+
+            {project.blueprint.problemStatement && (
+              <div className="p-4 rounded-xl bg-dark-900/60 border border-dark-700/50">
+                <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                  Problem Context & Stakeholder Impact
+                </h4>
+                <p className="text-xs text-gray-300 leading-relaxed">
+                  {project.blueprint.problemStatement}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Core Specifications Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Functional Features */}
+            <div className="glass-card p-6 space-y-4">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                <FiTarget className="text-primary-400" /> Core Features & Deliverables
+              </h3>
+              <ul className="space-y-2 text-xs text-gray-300">
+                {(project.blueprint.features?.core || []).map((feat, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <FiCheck className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                    <span>{feat}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Recommended Technology Stack */}
+            <div className="glass-card p-6 space-y-4">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                <FiCode className="text-primary-400" /> Technology Architecture
+              </h3>
+              <div className="space-y-3 text-xs">
+                <div>
+                  <span className="text-gray-400 block mb-1">Frontend:</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(project.blueprint.technology?.frontend || []).map((t, i) => (
+                      <span key={i} className="badge badge-primary text-xs py-1 px-2.5">
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-gray-400 block mb-1">Backend & Database:</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      ...(project.blueprint.technology?.backend || []),
+                      ...(project.blueprint.technology?.database || []),
+                    ].map((t, i) => (
+                      <span key={i} className="badge badge-accent text-xs py-1 px-2.5">
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                {project.blueprint.architecture?.description && (
+                  <div className="pt-2 text-gray-300 italic">
+                    "{project.blueprint.architecture.description}"
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Developer Roles & Skills */}
+            <div className="glass-card p-6 space-y-4">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                <FiUsers className="text-primary-400" /> Required Developer Roles
+              </h3>
+              <div className="space-y-3">
+                {(project.blueprint.developerRoles || []).map((role, i) => (
+                  <div key={i} className="p-3 rounded-xl bg-dark-900/60 border border-dark-700/50 text-xs">
+                    <span className="font-bold text-white block mb-1">{role.role}</span>
+                    <div className="flex flex-wrap gap-1 mb-1">
+                      {(role.skills || []).map((s, si) => (
+                        <span key={si} className="badge badge-neutral text-[11px] py-0.5 px-2">
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Milestones */}
+            <div className="glass-card p-6 space-y-4">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                <FiLayers className="text-primary-400" /> Phased Milestones
+              </h3>
+              <div className="space-y-3">
+                {(project.blueprint.milestones || []).map((m, i) => (
+                  <div key={i} className="p-3 rounded-xl bg-dark-900/60 border border-dark-700/50 text-xs">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-semibold text-white">{m.title}</span>
+                      <span className="text-[11px] text-primary-400 font-medium">{m.duration}</span>
+                    </div>
+                    <ul className="text-gray-400 list-disc list-inside space-y-0.5">
+                      {(m.deliverables || []).map((d, di) => (
+                        <li key={di}>{d}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -781,7 +1141,9 @@ const ProjectDetails = () => {
               {project.teamMembers?.map((m) => (
                 <div
                   key={m.user?._id || m._id}
-                  className="bg-dark-900/80 border border-dark-700 rounded-xl p-4 flex items-center justify-between gap-4"
+                  className={`bg-dark-900/80 border rounded-xl p-4 flex items-center justify-between gap-4 ${
+                    m.status === "VACANT" ? "border-amber-500/50 bg-amber-500/5" : "border-dark-700"
+                  }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="avatar">
@@ -794,7 +1156,7 @@ const ProjectDetails = () => {
                       >
                         {m.user?.name}
                       </Link>
-                      <div className="flex items-center gap-2 mt-0.5">
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                         <span className="badge badge-primary text-[10px] py-0 px-2">
                           {m.role}
                         </span>
@@ -803,18 +1165,126 @@ const ProjectDetails = () => {
                             {m.customRole}
                           </span>
                         )}
+                        {m.status === "VACANT" && (
+                          <span className="badge text-[10px] py-0 px-2 bg-amber-500/20 text-amber-400 border-amber-500/40">
+                            ⚠ VACANT
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  <div className="text-right">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     <span className="text-xs text-gray-400">
                       {m.user?.reputation || 0} pts
                     </span>
+                    {/* Leader can mark members as vacant (not self) */}
+                    {isLeader && m.role !== "Leader" && m.status !== "VACANT" && (
+                      <button
+                        onClick={() => setVacantModalUserId(m.user?._id)}
+                        className="btn-sm text-[10px] px-2 py-1 text-amber-400 border border-amber-500/30 rounded-lg hover:bg-amber-500/10"
+                        title="Mark as Vacant"
+                      >
+                        <FiUserMinus className="w-3 h-3" />
+                      </button>
+                    )}
+                    {/* Find replacement for vacant positions */}
+                    {(isLeader || isProvider) && m.status === "VACANT" && (
+                      <button
+                        onClick={() => handleFindReplacements(m.user?._id)}
+                        className="btn-sm text-[10px] px-2 py-1 text-emerald-400 border border-emerald-500/30 rounded-lg hover:bg-emerald-500/10"
+                        title="Find Replacement"
+                      >
+                        <FiSearch className="w-3 h-3" />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* VACANT CONFIRMATION MODAL */}
+      {vacantModalUserId && (
+        <div className="modal-overlay">
+          <div className="modal-content space-y-4">
+            <h3 className="text-base font-bold text-white">Mark Member as Vacant?</h3>
+            <p className="text-xs text-gray-400">
+              This will mark the position as <strong className="text-amber-400">VACANT</strong> and preserve their contribution history. The project will <strong>NOT</strong> be reopened.
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={() => setVacantModalUserId(null)} className="btn-secondary btn-sm">Cancel</button>
+              <button onClick={() => handleMarkVacant(vacantModalUserId)} className="btn-primary btn-sm bg-amber-500 hover:bg-amber-600">Mark Vacant</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* REPLACEMENT CANDIDATES MODAL */}
+      {replacementModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content space-y-4 max-w-2xl">
+            <div className="flex items-center justify-between pb-2 border-b border-dark-700">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <FiUserPlus className="text-emerald-400" /> Find Replacement Developer
+                </h3>
+                {replacementVacantInfo && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    Position: <strong className="text-white">{replacementVacantInfo.customRole || replacementVacantInfo.role}</strong>
+                  </p>
+                )}
+              </div>
+              <button onClick={() => { setReplacementModalOpen(false); setReplacementCandidates(null); }} className="text-gray-400 hover:text-white">✕</button>
+            </div>
+
+            {loadingReplacements ? (
+              <div className="text-center py-8">
+                <div className="spinner border-t-primary-500 mx-auto" />
+                <p className="text-xs text-gray-400 mt-2">Searching available developers...</p>
+              </div>
+            ) : replacementCandidates?.length > 0 ? (
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {replacementCandidates.map((c) => (
+                  <div key={c.developer._id} className="bg-dark-900/80 border border-dark-700 rounded-xl p-4 flex items-center justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <Link to={`/developers/${c.developer._id}`} className="text-sm font-bold text-white hover:text-primary-400 truncate">
+                          {c.developer.name}
+                        </Link>
+                        <span className={`badge text-[10px] py-0 px-2 ${
+                          c.matchPercentage >= 70 ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
+                            : c.matchPercentage >= 40 ? "bg-amber-500/20 text-amber-400 border-amber-500/40"
+                            : "bg-red-500/20 text-red-400 border-red-500/40"
+                        }`}>
+                          {c.matchPercentage}% Match
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        {c.developer.skills?.slice(0, 5).map((s) => (
+                          <span key={s} className={`text-[10px] px-1.5 py-0.5 rounded ${
+                            c.matchedSkills.includes(s.toLowerCase()) ? "bg-emerald-500/20 text-emerald-400" : "bg-dark-700 text-gray-400"
+                          }`}>{s}</span>
+                        ))}
+                      </div>
+                      <p className="text-[11px] text-gray-500 mt-1">
+                        {c.developer.reputation} pts • {c.developer.projectsCompleted} projects
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleInviteReplacement(c.developer._id)}
+                      className="btn-primary btn-sm text-xs whitespace-nowrap"
+                    >
+                      Invite
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400 text-center py-6">No available candidates found matching the required skills.</p>
+            )}
           </div>
         </div>
       )}
@@ -1279,6 +1749,252 @@ const ProjectDetails = () => {
               ) : (
                 <p className="text-xs text-gray-500 italic">No GitHub repo linked yet.</p>
               )}
+
+              {/* ─── GitHub Sub-Tabs: Issues / PRs / Milestones ─── */}
+              {project.githubRepoUrl && (
+                <div className="space-y-4 pt-4 border-t border-dark-700/60">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {[
+                      { id: "issues", label: `Issues${ghIssues ? ` (${ghIssues.counts?.total || 0})` : ""}`, icon: FiAlertCircle },
+                      { id: "pulls", label: `Pull Requests${ghPulls ? ` (${ghPulls.counts?.total || 0})` : ""}`, icon: FiGitPullRequest },
+                      { id: "milestones", label: `Milestones${ghMilestones ? ` (${ghMilestones.counts?.total || 0})` : ""}`, icon: FiTarget },
+                    ].map((st) => (
+                      <button
+                        key={st.id}
+                        onClick={() => setGhSubTab(st.id)}
+                        className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition ${
+                          ghSubTab === st.id
+                            ? "bg-primary-500/20 text-primary-400 border border-primary-500/40"
+                            : "bg-dark-800 text-gray-400 border border-dark-600 hover:text-white"
+                        }`}
+                      >
+                        <st.icon className="w-3.5 h-3.5" />
+                        {st.label}
+                      </button>
+                    ))}
+                    {loadingGhData && <span className="text-[10px] text-gray-500 ml-2">Loading...</span>}
+                  </div>
+
+                  {/* ISSUES SUB-TAB */}
+                  {ghSubTab === "issues" && (
+                    <div className="space-y-4">
+                      {ghIssues?.counts && (
+                        <div className="grid grid-cols-3 gap-3">
+                          <div className="glass-card p-3 text-center">
+                            <div className="text-lg font-bold text-emerald-400 font-display">{ghIssues.counts.open}</div>
+                            <div className="text-[10px] text-gray-400">Open</div>
+                          </div>
+                          <div className="glass-card p-3 text-center">
+                            <div className="text-lg font-bold text-red-400 font-display">{ghIssues.counts.closed}</div>
+                            <div className="text-[10px] text-gray-400">Closed</div>
+                          </div>
+                          <div className="glass-card p-3 text-center">
+                            <div className="text-lg font-bold text-white font-display">{ghIssues.counts.total}</div>
+                            <div className="text-[10px] text-gray-400">Total</div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Create Issue Button */}
+                      {isParticipant && (
+                        <button onClick={() => setCreateIssueOpen(true)} className="btn-primary btn-sm text-xs flex items-center gap-1.5">
+                          <FiPlus className="w-3.5 h-3.5" /> Create Issue
+                        </button>
+                      )}
+
+                      {/* Create Issue Form */}
+                      {createIssueOpen && (
+                        <form onSubmit={handleCreateIssue} className="bg-dark-900/80 border border-dark-700 rounded-xl p-4 space-y-3">
+                          <input
+                            type="text"
+                            placeholder="Issue title"
+                            value={newIssueTitle}
+                            onChange={(e) => setNewIssueTitle(e.target.value)}
+                            className="input-field text-xs"
+                            required
+                          />
+                          <textarea
+                            rows={3}
+                            placeholder="Issue description (optional)"
+                            value={newIssueBody}
+                            onChange={(e) => setNewIssueBody(e.target.value)}
+                            className="textarea-field text-xs"
+                          />
+                          <div className="flex gap-2 justify-end">
+                            <button type="button" onClick={() => setCreateIssueOpen(false)} className="btn-secondary btn-sm text-xs">Cancel</button>
+                            <button type="submit" disabled={creatingIssue} className="btn-primary btn-sm text-xs">
+                              {creatingIssue ? "Creating..." : "Create Issue"}
+                            </button>
+                          </div>
+                        </form>
+                      )}
+
+                      {/* Issues List */}
+                      <div className="space-y-2 max-h-96 overflow-y-auto">
+                        {ghIssues?.issues?.length > 0 ? ghIssues.issues.map((issue) => (
+                          <div key={issue.number} className="bg-dark-900/60 border border-dark-700 rounded-xl p-3 flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-[10px] text-gray-500">#{issue.number}</span>
+                                <a href={issue.url} target="_blank" rel="noreferrer" className="text-xs font-semibold text-white hover:text-primary-400 truncate">
+                                  {issue.title}
+                                </a>
+                                <span className={`badge text-[9px] py-0 px-1.5 ${issue.state === "open" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" : "bg-red-500/20 text-red-400 border-red-500/40"}`}>
+                                  {issue.state}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                <span className="text-[10px] text-gray-500">by {issue.author}</span>
+                                {issue.assignee && <span className="text-[10px] text-gray-500">→ {issue.assignee}</span>}
+                                <span className="text-[10px] text-gray-600">{new Date(issue.createdAt).toLocaleDateString()}</span>
+                                {issue.labels?.map((l) => (
+                                  <span key={l.name} className="text-[9px] px-1.5 py-0 rounded" style={{ backgroundColor: `#${l.color}22`, color: `#${l.color}`, border: `1px solid #${l.color}44` }}>
+                                    {l.name}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                            <a href={issue.url} target="_blank" rel="noreferrer" className="text-gray-500 hover:text-primary-400 flex-shrink-0">
+                              <FiExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                          </div>
+                        )) : <p className="text-xs text-gray-500 italic text-center py-4">No issues found.</p>}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* PULL REQUESTS SUB-TAB */}
+                  {ghSubTab === "pulls" && (
+                    <div className="space-y-4">
+                      {ghPulls?.counts && (
+                        <div className="grid grid-cols-4 gap-3">
+                          <div className="glass-card p-3 text-center">
+                            <div className="text-lg font-bold text-emerald-400 font-display">{ghPulls.counts.open}</div>
+                            <div className="text-[10px] text-gray-400">Open</div>
+                          </div>
+                          <div className="glass-card p-3 text-center">
+                            <div className="text-lg font-bold text-purple-400 font-display">{ghPulls.counts.merged}</div>
+                            <div className="text-[10px] text-gray-400">Merged</div>
+                          </div>
+                          <div className="glass-card p-3 text-center">
+                            <div className="text-lg font-bold text-red-400 font-display">{ghPulls.counts.closed}</div>
+                            <div className="text-[10px] text-gray-400">Closed</div>
+                          </div>
+                          <div className="glass-card p-3 text-center">
+                            <div className="text-lg font-bold text-white font-display">{ghPulls.counts.total}</div>
+                            <div className="text-[10px] text-gray-400">Total</div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="space-y-2 max-h-96 overflow-y-auto">
+                        {ghPulls?.pullRequests?.length > 0 ? ghPulls.pullRequests.map((pr) => (
+                          <div key={pr.number} className="bg-dark-900/60 border border-dark-700 rounded-xl p-3 space-y-2">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-[10px] text-gray-500">#{pr.number}</span>
+                                  <a href={pr.url} target="_blank" rel="noreferrer" className="text-xs font-semibold text-white hover:text-primary-400 truncate">
+                                    {pr.title}
+                                  </a>
+                                  <span className={`badge text-[9px] py-0 px-1.5 ${
+                                    pr.state === "merged" ? "bg-purple-500/20 text-purple-400 border-purple-500/40"
+                                      : pr.state === "open" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
+                                      : "bg-red-500/20 text-red-400 border-red-500/40"
+                                  }`}>
+                                    {pr.state}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-500 flex-wrap">
+                                  <span>by {pr.author}</span>
+                                  <span className="text-gray-600">{pr.sourceBranch} → {pr.targetBranch}</span>
+                                  <span>{new Date(pr.createdAt).toLocaleDateString()}</span>
+                                  {pr.mergedAt && <span className="text-purple-400">merged {new Date(pr.mergedAt).toLocaleDateString()}</span>}
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => { setExpandedPR(expandedPR === pr.number ? null : pr.number); handleLoadPRReviews(pr.number); }}
+                                className="text-[10px] text-gray-400 hover:text-primary-400 flex-shrink-0"
+                              >
+                                {expandedPR === pr.number ? "Hide" : "Reviews"}
+                              </button>
+                            </div>
+
+                            {/* Expanded PR Reviews */}
+                            {expandedPR === pr.number && prReviews[pr.number] && (
+                              <div className="pl-4 border-l-2 border-dark-600 space-y-2 pt-2">
+                                <div className="flex items-center gap-3 text-[10px]">
+                                  <span className="text-emerald-400">✓ {prReviews[pr.number].summary?.approved || 0} Approved</span>
+                                  <span className="text-amber-400">⟳ {prReviews[pr.number].summary?.changesRequested || 0} Changes</span>
+                                  <span className="text-gray-400">💬 {prReviews[pr.number].summary?.commented || 0} Comments</span>
+                                </div>
+                                {prReviews[pr.number].reviews?.map((r) => (
+                                  <div key={r.id} className="text-[10px] text-gray-400">
+                                    <span className="font-medium text-gray-300">{r.author}</span>: {r.state.replace("_", " ")}
+                                    {r.body && <span className="text-gray-500 ml-1">— "{r.body.substring(0, 80)}..."</span>}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )) : <p className="text-xs text-gray-500 italic text-center py-4">No pull requests found.</p>}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* MILESTONES SUB-TAB */}
+                  {ghSubTab === "milestones" && (
+                    <div className="space-y-4">
+                      {ghMilestones?.counts && (
+                        <div className="grid grid-cols-3 gap-3">
+                          <div className="glass-card p-3 text-center">
+                            <div className="text-lg font-bold text-emerald-400 font-display">{ghMilestones.counts.open}</div>
+                            <div className="text-[10px] text-gray-400">Open</div>
+                          </div>
+                          <div className="glass-card p-3 text-center">
+                            <div className="text-lg font-bold text-gray-400 font-display">{ghMilestones.counts.closed}</div>
+                            <div className="text-[10px] text-gray-400">Closed</div>
+                          </div>
+                          <div className="glass-card p-3 text-center">
+                            <div className="text-lg font-bold text-white font-display">{ghMilestones.counts.total}</div>
+                            <div className="text-[10px] text-gray-400">Total</div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {ghMilestones?.milestones?.length > 0 ? ghMilestones.milestones.map((ms) => (
+                          <div key={ms.number} className="bg-dark-900/60 border border-dark-700 rounded-xl p-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <a href={ms.url} target="_blank" rel="noreferrer" className="text-sm font-bold text-white hover:text-primary-400 flex items-center gap-1.5">
+                                {ms.title} <FiExternalLink className="w-3 h-3" />
+                              </a>
+                              <span className={`badge text-[9px] py-0 px-1.5 ${ms.state === "open" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" : "bg-gray-500/20 text-gray-400 border-gray-500/40"}`}>
+                                {ms.state}
+                              </span>
+                            </div>
+                            {ms.description && <p className="text-[11px] text-gray-400 line-clamp-2">{ms.description}</p>}
+                            <div className="space-y-1">
+                              <div className="flex justify-between text-[10px] text-gray-400">
+                                <span>{ms.closedIssues}/{ms.totalIssues} issues closed</span>
+                                <span className="font-bold text-primary-400">{ms.progress}%</span>
+                              </div>
+                              <div className="w-full bg-dark-700 rounded-full h-1.5">
+                                <div className="bg-primary-500 h-1.5 rounded-full transition-all" style={{ width: `${ms.progress}%` }} />
+                              </div>
+                            </div>
+                            {ms.dueOn && (
+                              <p className="text-[10px] text-gray-500 flex items-center gap-1">
+                                <FiCalendar className="w-3 h-3" /> Due: {new Date(ms.dueOn).toLocaleDateString()}
+                              </p>
+                            )}
+                          </div>
+                        )) : <p className="text-xs text-gray-500 italic col-span-2 text-center py-4">No milestones found.</p>}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         ) : (
@@ -1292,6 +2008,207 @@ const ProjectDetails = () => {
             </p>
           </div>
         )
+      )}
+
+      {/* ─── CONTRIBUTIONS TAB ─── */}
+      {activeTab === "contributions" && (
+        <div className="space-y-6">
+          <div className="glass-card p-6 sm:p-8 space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <FiAward className="text-amber-400" /> Contribution Analysis
+                </h3>
+                <p className="text-xs text-gray-400 mt-1">Per-developer GitHub contribution breakdown with transparent scoring.</p>
+              </div>
+            </div>
+
+            {contributions?.scoreFormula && (
+              <div className="p-3 bg-primary-600/10 border border-primary-500/30 rounded-xl text-xs text-gray-300">
+                <strong className="text-primary-300">Score Formula:</strong> {contributions.scoreFormula}
+              </div>
+            )}
+
+            {loadingContributions ? (
+              <div className="text-center py-8">
+                <div className="spinner border-t-primary-500 mx-auto" />
+                <p className="text-xs text-gray-400 mt-2">Analyzing contributions...</p>
+              </div>
+            ) : contributions?.contributors?.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-dark-700 text-gray-400">
+                      <th className="text-left py-2 px-3">#</th>
+                      <th className="text-left py-2 px-3">Developer</th>
+                      <th className="text-center py-2 px-3">Commits</th>
+                      <th className="text-center py-2 px-3">PRs</th>
+                      <th className="text-center py-2 px-3">Merged</th>
+                      <th className="text-center py-2 px-3">Issues</th>
+                      <th className="text-center py-2 px-3">Reviews</th>
+                      <th className="text-center py-2 px-3 font-bold text-primary-400">Score</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {contributions.contributors.map((c, i) => {
+                      const maxScore = contributions.contributors[0]?.score || 1;
+                      return (
+                        <tr key={c.author} className="border-b border-dark-800 hover:bg-dark-800/50">
+                          <td className="py-2.5 px-3 text-gray-500">{i + 1}</td>
+                          <td className="py-2.5 px-3">
+                            <span className="font-semibold text-white">{c.author}</span>
+                          </td>
+                          <td className="py-2.5 px-3 text-center text-gray-300">{c.commits}</td>
+                          <td className="py-2.5 px-3 text-center text-gray-300">{c.prs}</td>
+                          <td className="py-2.5 px-3 text-center text-purple-400">{c.mergedPrs}</td>
+                          <td className="py-2.5 px-3 text-center text-gray-300">{c.issues}</td>
+                          <td className="py-2.5 px-3 text-center text-gray-300">{c.reviews}</td>
+                          <td className="py-2.5 px-3 text-center">
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 bg-dark-700 rounded-full h-1.5">
+                                <div className="bg-primary-500 h-1.5 rounded-full transition-all" style={{ width: `${(c.score / maxScore) * 100}%` }} />
+                              </div>
+                              <span className="font-bold text-primary-400 w-8 text-right">{c.score}</span>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-xs text-gray-500 italic text-center py-6">No contribution data available. Ensure a GitHub repository is linked.</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── PROGRESS TAB ─── */}
+      {activeTab === "progress" && (
+        <div className="space-y-6">
+          <div className="glass-card p-6 sm:p-8 space-y-6">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <FiTrendingUp className="text-emerald-400" /> Project Development Progress
+            </h3>
+
+            {loadingProgress ? (
+              <div className="text-center py-8">
+                <div className="spinner border-t-primary-500 mx-auto" />
+                <p className="text-xs text-gray-400 mt-2">Calculating progress...</p>
+              </div>
+            ) : progressData ? (
+              <div className="space-y-6">
+                {/* Overall Progress */}
+                <div className="bg-dark-900/80 border border-dark-700 rounded-xl p-6 text-center space-y-3">
+                  <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Overall Project Health</p>
+                  <div className="text-5xl font-extrabold font-display text-primary-400">{progressData.overallProgress}%</div>
+                  <div className="w-full bg-dark-700 rounded-full h-3 max-w-md mx-auto">
+                    <div className="bg-gradient-to-r from-primary-500 to-emerald-500 h-3 rounded-full transition-all" style={{ width: `${progressData.overallProgress}%` }} />
+                  </div>
+                </div>
+
+                {/* Metric Cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="glass-card p-4 text-center space-y-1">
+                    <div className="text-2xl font-bold text-emerald-400 font-display">{progressData.issueResolutionRate}%</div>
+                    <div className="text-[10px] text-gray-400">Issue Resolution</div>
+                    <div className="text-[9px] text-gray-600">{progressData.issues?.closed || 0}/{progressData.issues?.total || 0} closed</div>
+                  </div>
+                  <div className="glass-card p-4 text-center space-y-1">
+                    <div className="text-2xl font-bold text-purple-400 font-display">{progressData.prMergeRate}%</div>
+                    <div className="text-[10px] text-gray-400">PR Merge Rate</div>
+                    <div className="text-[9px] text-gray-600">{progressData.pullRequests?.merged || 0}/{progressData.pullRequests?.total || 0} merged</div>
+                  </div>
+                  <div className="glass-card p-4 text-center space-y-1">
+                    <div className="text-2xl font-bold text-primary-400 font-display">{progressData.githubMilestoneProgress}%</div>
+                    <div className="text-[10px] text-gray-400">GitHub Milestones</div>
+                    <div className="text-[9px] text-gray-600">{progressData.milestones?.closed || 0}/{progressData.milestones?.total || 0} done</div>
+                  </div>
+                  <div className="glass-card p-4 text-center space-y-1">
+                    <div className="text-2xl font-bold text-amber-400 font-display">{progressData.solvexMilestoneProgress}%</div>
+                    <div className="text-[10px] text-gray-400">SolveX Milestones</div>
+                  </div>
+                </div>
+
+                {/* Commit Activity */}
+                <div className="bg-dark-900/80 border border-dark-700 rounded-xl p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <FiGitCommit className="text-primary-400" /> Commit Activity
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 mt-3">
+                    <div className="text-center">
+                      <div className="text-xl font-bold text-white font-display">{progressData.commitActivity?.total || 0}</div>
+                      <div className="text-[10px] text-gray-400">Total Commits</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xl font-bold text-emerald-400 font-display">{progressData.commitActivity?.last30Days || 0}</div>
+                      <div className="text-[10px] text-gray-400">Last 30 Days</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-gray-500 italic text-center py-6">No progress data available. Ensure a GitHub repository is linked.</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── ACTIVITY TIMELINE TAB ─── */}
+      {activeTab === "activity" && (
+        <div className="space-y-6">
+          <div className="glass-card p-6 sm:p-8 space-y-6">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <FiActivity className="text-primary-400" /> Recent GitHub Activity
+            </h3>
+
+            {loadingActivity ? (
+              <div className="text-center py-8">
+                <div className="spinner border-t-primary-500 mx-auto" />
+                <p className="text-xs text-gray-400 mt-2">Loading activity...</p>
+              </div>
+            ) : activityTimeline?.length > 0 ? (
+              <div className="relative pl-6 border-l-2 border-dark-700 space-y-4">
+                {activityTimeline.map((event, i) => (
+                  <div key={i} className="relative">
+                    <div className={`absolute -left-[25px] w-3 h-3 rounded-full border-2 ${
+                      event.type === "commit" ? "bg-emerald-500 border-emerald-400"
+                        : event.type === "pull_request" ? "bg-purple-500 border-purple-400"
+                        : "bg-amber-500 border-amber-400"
+                    }`} />
+                    <div className="bg-dark-900/60 border border-dark-700 rounded-xl p-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {event.type === "commit" && <FiGitCommit className="w-3.5 h-3.5 text-emerald-400" />}
+                        {event.type === "pull_request" && <FiGitPullRequest className="w-3.5 h-3.5 text-purple-400" />}
+                        {event.type === "issue" && <FiAlertCircle className="w-3.5 h-3.5 text-amber-400" />}
+                        <span className="text-[10px] font-bold text-gray-300 uppercase">{event.type.replace("_", " ")}</span>
+                        {event.state && (
+                          <span className={`text-[9px] px-1.5 py-0 rounded ${
+                            event.state === "merged" ? "bg-purple-500/20 text-purple-400"
+                              : event.state === "open" ? "bg-emerald-500/20 text-emerald-400"
+                              : event.state === "closed" ? "bg-red-500/20 text-red-400"
+                              : "bg-dark-700 text-gray-400"
+                          }`}>{event.state}</span>
+                        )}
+                        <span className="text-[10px] text-gray-600 ml-auto">{new Date(event.date).toLocaleString()}</span>
+                      </div>
+                      <a href={event.url} target="_blank" rel="noreferrer" className="text-xs text-white hover:text-primary-400 mt-1 block truncate">
+                        {event.sha && <span className="text-gray-500 font-mono mr-1">{event.sha}</span>}
+                        {event.message}
+                      </a>
+                      <span className="text-[10px] text-gray-500">by {event.author}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-500 italic text-center py-6">No recent activity found.</p>
+            )}
+          </div>
+        </div>
       )}
 
       {/* 7. SOLUTION TAB */}

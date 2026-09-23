@@ -13,7 +13,26 @@ const TeamSchema = new mongoose.Schema(
         userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
         role: { type: String, enum: ["Leader", "Contributor", "Reviewer"], default: "Contributor" },
         customRole: String, // optional, set by Leader after team discussion
-        status: { type: String, enum: ["ACTIVE", "REMOVED"], default: "ACTIVE" },
+        status: { type: String, enum: ["ACTIVE", "REMOVED", "VACANT"], default: "ACTIVE" },
+        vacatedAt: Date,
+      },
+    ],
+    // Preserve contribution history when a member leaves
+    previousMembers: [
+      {
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        role: String,
+        customRole: String,
+        joinedAt: Date,
+        leftAt: { type: Date, default: Date.now },
+        contributionSnapshot: {
+          commits: { type: Number, default: 0 },
+          prs: { type: Number, default: 0 },
+          mergedPrs: { type: Number, default: 0 },
+          issues: { type: Number, default: 0 },
+          reviews: { type: Number, default: 0 },
+          score: { type: Number, default: 0 },
+        },
       },
     ],
   },
