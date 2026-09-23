@@ -66,17 +66,44 @@ const Navbar = () => {
 
             {/* Desktop Navigation Links */}
             <div className="hidden md:flex items-center gap-1">
-              <Link
-                to="/explore"
-                className={`px-3.5 py-2 rounded-xl text-sm font-medium transition flex items-center gap-1.5 ${
-                  isActive("/explore")
-                    ? "bg-dark-800 text-white border border-dark-600/60 shadow-sm"
-                    : "text-gray-300 hover:text-white hover:bg-dark-800/50"
-                }`}
-              >
-                <FiCompass className="w-4 h-4 text-primary-400" />
-                Explore
-              </Link>
+              {user?.role === "PROBLEM_PROVIDER" ? (
+                <>
+                  <Link
+                    to="/provider/dashboard"
+                    className={`px-3.5 py-2 rounded-xl text-sm font-medium transition flex items-center gap-1.5 ${
+                      isActive("/provider/dashboard")
+                        ? "bg-dark-800 text-white border border-dark-600/60 shadow-sm"
+                        : "text-gray-300 hover:text-white hover:bg-dark-800/50"
+                    }`}
+                  >
+                    <FiFolder className="w-4 h-4 text-primary-400" />
+                    My Projects
+                  </Link>
+                  <Link
+                    to="/provider/find"
+                    className={`px-3.5 py-2 rounded-xl text-sm font-medium transition flex items-center gap-1.5 ${
+                      isActive("/provider/find")
+                        ? "bg-dark-800 text-white border border-dark-600/60 shadow-sm"
+                        : "text-gray-300 hover:text-white hover:bg-dark-800/50"
+                    }`}
+                  >
+                    <FiUsers className="w-4 h-4 text-emerald-400" />
+                    Find Developers
+                  </Link>
+                </>
+              ) : (
+                <Link
+                  to="/explore"
+                  className={`px-3.5 py-2 rounded-xl text-sm font-medium transition flex items-center gap-1.5 ${
+                    isActive("/explore")
+                      ? "bg-dark-800 text-white border border-dark-600/60 shadow-sm"
+                      : "text-gray-300 hover:text-white hover:bg-dark-800/50"
+                  }`}
+                >
+                  <FiCompass className="w-4 h-4 text-primary-400" />
+                  Explore
+                </Link>
+              )}
               <Link
                 to="/showcase"
                 className={`px-3.5 py-2 rounded-xl text-sm font-medium transition flex items-center gap-1.5 ${
@@ -274,13 +301,32 @@ const Navbar = () => {
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
         <div className="md:hidden glass-card border-t border-dark-700/60 px-4 pt-2 pb-6 space-y-2">
-          <Link
-            to="/explore"
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-dark-800"
-          >
-            <FiCompass className="w-4 h-4 text-primary-400" />
-            Explore Problems
-          </Link>
+          {user?.role === "PROBLEM_PROVIDER" ? (
+            <>
+              <Link
+                to="/provider/dashboard"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-dark-800"
+              >
+                <FiFolder className="w-4 h-4 text-primary-400" />
+                My Projects
+              </Link>
+              <Link
+                to="/provider/find"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-dark-800"
+              >
+                <FiUsers className="w-4 h-4 text-emerald-400" />
+                Find Developers
+              </Link>
+            </>
+          ) : (
+            <Link
+              to="/explore"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-dark-800"
+            >
+              <FiCompass className="w-4 h-4 text-primary-400" />
+              Explore Problems
+            </Link>
+          )}
           <Link
             to="/showcase"
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-dark-800"

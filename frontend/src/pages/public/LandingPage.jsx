@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Link } from "react-router-dom";
 import {
   FiArrowRight,
@@ -10,10 +10,13 @@ import {
   FiHeart,
   FiShield,
   FiLayers,
+  FiPlusCircle,
 } from "react-icons/fi";
+import { AuthContext } from "../../context/AuthContext";
 import api from "../../services/api";
 
 const LandingPage = () => {
+  const { user } = useContext(AuthContext);
   const [featuredProjects, setFeaturedProjects] = useState([]);
   const [topDevelopers, setTopDevelopers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -60,13 +63,28 @@ const LandingPage = () => {
 
           {/* Call to Actions */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4 animate-scale-in">
-            <Link to="/explore" className="btn-primary btn-lg w-full sm:w-auto flex items-center justify-center gap-2">
-              <span>Explore Open Problems</span>
-              <FiArrowRight className="w-5 h-5" />
-            </Link>
-            <Link to="/register" className="btn-secondary btn-lg w-full sm:w-auto">
-              Join as Developer / Provider
-            </Link>
+            {user?.role === "PROBLEM_PROVIDER" ? (
+              <>
+                <Link to="/provider/dashboard" className="btn-primary btn-lg w-full sm:w-auto flex items-center justify-center gap-2">
+                  <span>Go to Provider Dashboard</span>
+                  <FiArrowRight className="w-5 h-5" />
+                </Link>
+                <Link to="/provider/create" className="btn-accent btn-lg w-full sm:w-auto flex items-center justify-center gap-2">
+                  <FiPlusCircle className="w-5 h-5" />
+                  <span>Post Problem</span>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link to="/explore" className="btn-primary btn-lg w-full sm:w-auto flex items-center justify-center gap-2">
+                  <span>Explore Open Problems</span>
+                  <FiArrowRight className="w-5 h-5" />
+                </Link>
+                <Link to="/register" className="btn-secondary btn-lg w-full sm:w-auto">
+                  Join as Developer / Provider
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Quick Metrics Badges */}
@@ -273,12 +291,25 @@ const LandingPage = () => {
             Join SolveX today as a developer to boost your verified portfolio, or as an NGO/community to turn your problem into a working system.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
-            <Link to="/register" className="btn-primary btn-lg w-full sm:w-auto">
-              Create Your Account
-            </Link>
-            <Link to="/explore" className="btn-secondary btn-lg w-full sm:w-auto">
-              Browse Problems
-            </Link>
+            {user?.role === "PROBLEM_PROVIDER" ? (
+              <>
+                <Link to="/provider/dashboard" className="btn-primary btn-lg w-full sm:w-auto">
+                  Go to Provider Dashboard
+                </Link>
+                <Link to="/provider/create" className="btn-secondary btn-lg w-full sm:w-auto">
+                  Post New Problem
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link to="/register" className="btn-primary btn-lg w-full sm:w-auto">
+                  Create Your Account
+                </Link>
+                <Link to="/explore" className="btn-secondary btn-lg w-full sm:w-auto">
+                  Browse Problems
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </section>

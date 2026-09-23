@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect, useCallback, useContext } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   FiSearch,
   FiFilter,
@@ -9,9 +9,12 @@ import {
   FiArrowRight,
   FiTag,
 } from "react-icons/fi";
+import { AuthContext } from "../../context/AuthContext";
 import api from "../../services/api";
 
 const ExploreProblems = () => {
+  const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -22,6 +25,13 @@ const ExploreProblems = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+
+  // Problem Providers manage their own challenges and do not need the public Explore directory
+  useEffect(() => {
+    if (user?.role === "PROBLEM_PROVIDER") {
+      navigate("/provider/dashboard", { replace: true });
+    }
+  }, [user, navigate]);
 
   const fetchProjects = useCallback(async () => {
     try {

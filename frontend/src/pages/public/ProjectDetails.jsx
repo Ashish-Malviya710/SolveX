@@ -591,8 +591,11 @@ const ProjectDetails = () => {
         <div className="glass-card max-w-md mx-auto p-8 space-y-4">
           <FiAlertCircle className="w-12 h-12 text-red-400 mx-auto" />
           <h2 className="text-xl font-bold text-white">Project Not Found</h2>
-          <Link to="/explore" className="btn-secondary btn-sm inline-block">
-            Back to Explore
+          <Link
+            to={user?.role === "PROBLEM_PROVIDER" ? "/provider/dashboard" : "/explore"}
+            className="btn-secondary btn-sm inline-block"
+          >
+            {user?.role === "PROBLEM_PROVIDER" ? "Back to Dashboard" : "Back to Explore"}
           </Link>
         </div>
       </div>
