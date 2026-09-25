@@ -41,11 +41,6 @@ const Login = () => {
     }
   };
 
-  // Demo auto-fill helper
-  const handleQuickLogin = (demoEmail, demoPassword) => {
-    setEmail(demoEmail);
-    setPassword(demoPassword);
-  };
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -127,46 +122,7 @@ const Login = () => {
             </button>
           </form>
 
-          {/* Quick Demo Logins Helper */}
-          <div className="pt-4 border-t border-dark-700/60 space-y-2">
-            <span className="text-[11px] text-gray-400 block font-semibold uppercase tracking-wider text-center">
-              ⚡ One-Click Demo Logins
-            </span>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("ashish@developer.io", "password123")}
-                className="p-2 rounded-lg bg-dark-900/80 hover:bg-dark-700 border border-dark-700 text-[10px] text-primary-300 font-medium transition text-center"
-                title="ashish@developer.io / password123"
-              >
-                Dev: Ashish
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("aarav.ngo@example.org", "password123")}
-                className="p-2 rounded-lg bg-dark-900/80 hover:bg-dark-700 border border-dark-700 text-[10px] text-accent-300 font-medium transition text-center"
-                title="aarav.ngo@example.org / password123"
-              >
-                Provider: Aarav
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("maya.sen@rhi-care.org", "password123")}
-                className="p-2 rounded-lg bg-dark-900/80 hover:bg-dark-700 border border-dark-700 text-[10px] text-emerald-300 font-medium transition text-center"
-                title="maya.sen@rhi-care.org / password123"
-              >
-                Provider: Dr. Maya
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("admin@solvex.com", "adminPassword123!")}
-                className="p-2 rounded-lg bg-dark-900/80 hover:bg-dark-700 border border-dark-700 text-[10px] text-amber-300 font-medium transition text-center"
-                title="admin@solvex.com / adminPassword123!"
-              >
-                Admin
-              </button>
-            </div>
-          </div>
+
         </div>
 
         {/* Footer info */}
