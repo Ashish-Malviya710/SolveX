@@ -60,13 +60,28 @@ exports.login = async (req, res) => {
       return res.status(400).json({ message: "Please provide email and password" });
     }
 
-    // Need to explicitly select password since it's select: false
-    const user = await User.findOne({ email }).select("+password");
+    const normalizedEmail = email.trim().replace(/^["']|["']$/g, "").toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail }).select("+password");
+
     if (!user) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    const isMatch = await user.comparePassword(password);
+    // Check exact password
+    let isMatch = await user.comparePassword(password);
+
+    // Fallback: check trimmed or unquoted password in case user copied with quotes/whitespace
+    if (!isMatch) {
+      const trimmed = password.trim();
+      const unquoted = trimmed.replace(/^["']|["']$/g, "");
+      if (trimmed !== password) {
+        isMatch = await user.comparePassword(trimmed);
+      }
+      if (!isMatch && unquoted !== trimmed) {
+        isMatch = await user.comparePassword(unquoted);
+      }
+    }
+
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid email or password" });
     }

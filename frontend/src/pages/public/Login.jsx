@@ -131,7 +131,7 @@ const Login = () => {
                 size="sm"
                 onClick={() => handleQuickLogin("ashish@developer.io", "password123")}
                 className="text-[10px] py-1.5 px-2"
-                title="ashish@developer.io"
+                title="ashish@developer.io / password123"
               >
                 Dev: Ashish
               </Button>
@@ -140,7 +140,7 @@ const Login = () => {
                 size="sm"
                 onClick={() => handleQuickLogin("aarav.ngo@example.org", "password123")}
                 className="text-[10px] py-1.5 px-2"
-                title="aarav.ngo@example.org"
+                title="aarav.ngo@example.org / password123"
               >
                 Provider: Aarav
               </Button>
@@ -149,16 +149,16 @@ const Login = () => {
                 size="sm"
                 onClick={() => handleQuickLogin("maya.sen@rhi-care.org", "password123")}
                 className="text-[10px] py-1.5 px-2 text-emerald-400 border-emerald-500/30"
-                title="maya.sen@rhi-care.org"
+                title="maya.sen@rhi-care.org / password123"
               >
-                Provider: Maya
+                Provider: Dr. Maya
               </Button>
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={() => handleQuickLogin("admin@solvex.com", "adminPassword123!")}
                 className="text-[10px] py-1.5 px-2 text-amber-400 border-amber-500/30"
-                title="admin@solvex.com"
+                title="admin@solvex.com / adminPassword123!"
               >
                 Admin
               </Button>
