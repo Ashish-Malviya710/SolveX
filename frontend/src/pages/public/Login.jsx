@@ -1,17 +1,10 @@
 import React, { useState, useContext } from "react";
-import { Link, useNavigate, useLocation, Navigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { FiMail, FiLock, FiArrowRight, FiEye, FiEyeOff } from "react-icons/fi";
 import { AuthContext } from "../../context/AuthContext";
-import { getDashboardRoute } from "../../components/PublicOnlyRoute";
-import {
-  Container,
-  Card,
-  Button,
-  Input,
-} from "../../components/ui";
 
 const Login = () => {
-  const { login, user, isAuthenticated } = useContext(AuthContext);
+  const { login } = useContext(AuthContext);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -20,9 +13,7 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  if (isAuthenticated && user) {
-    return <Navigate to={getDashboardRoute(user.role)} replace />;
-  }
+  const from = location.state?.from?.pathname || "/explore";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,144 +27,156 @@ const Login = () => {
     setLoading(false);
 
     if (result.success) {
-      const redirectTarget =
-        location.state?.from?.pathname && location.state.from.pathname !== "/"
-          ? location.state.from.pathname
-          : getDashboardRoute(result.user.role);
-      navigate(redirectTarget, { replace: true });
+      if (result.user.role === "PROBLEM_PROVIDER") {
+        navigate("/provider/dashboard");
+      } else if (result.user.role === "DEVELOPER") {
+        navigate("/developer/dashboard");
+      } else if (result.user.role === "ADMIN") {
+        navigate("/admin/dashboard");
+      } else {
+        navigate(from);
+      }
     } else {
       setError(result.error);
     }
   };
 
+  // Demo auto-fill helper
   const handleQuickLogin = (demoEmail, demoPassword) => {
     setEmail(demoEmail);
     setPassword(demoPassword);
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center py-12">
-      <Container size="narrow" className="max-w-md space-y-6">
-        {/* Header */}
+    <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md space-y-6">
+        {/* Card Header */}
         <div className="text-center space-y-2">
-          <div className="w-10 h-10 rounded-inputs bg-carbon border border-iron text-lime font-mono font-bold text-xl flex items-center justify-center mx-auto shadow-glow-sm">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-primary-600 to-accent-500 flex items-center justify-center text-white font-extrabold text-2xl mx-auto shadow-glow-sm">
             S
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+          <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-white">
             Welcome Back
-          </h1>
-          <p className="text-xs text-smoke">
-            Sign in to coordinate teams, manage challenges, and submit solutions.
+          </h2>
+          <p className="text-xs text-gray-400">
+            Sign in to manage problems, coordinate teams, and submit solutions.
           </p>
         </div>
 
         {/* Form Card */}
-        <Card className="p-8 space-y-6">
+        <div className="glass-card p-8 space-y-6">
           {error && (
-            <div className="p-3 bg-red-950/60 border border-red-500/40 text-red-300 text-xs rounded-inputs flex items-center gap-2">
-              <span>⚠</span>
+            <div className="p-3.5 bg-red-500/20 border border-red-500/40 text-red-300 text-xs rounded-xl flex items-center gap-2">
+              <span>⚠️</span>
               <span>{error}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label="Email Address"
-              type="email"
-              required
-              placeholder="name@example.com"
-              icon={FiMail}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+            <div>
+              <label className="input-label text-xs">Email Address</label>
+              <div className="relative">
+                <FiMail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input
+                  type="email"
+                  required
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="input-field pl-10 text-xs"
+                />
+              </div>
+            </div>
 
-            <Input
-              label="Password"
-              type={showPassword ? "text" : "password"}
-              required
-              placeholder="••••••••"
-              icon={FiLock}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              rightElement={
+            <div>
+              <label className="input-label text-xs">Password</label>
+              <div className="relative">
+                <FiLock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="input-field pl-10 pr-10 text-xs"
+                />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="text-smoke hover:text-white transition p-1"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200 text-xs"
                   title={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
                 </button>
-              }
-            />
+              </div>
+            </div>
 
-            <Button
+            <button
               type="submit"
-              variant="primary"
-              size="md"
-              loading={loading}
-              className="w-full mt-2"
-              icon={FiArrowRight}
-              iconPosition="right"
+              disabled={loading}
+              className="btn-primary w-full py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2"
             >
-              Sign In
-            </Button>
+              {loading ? (
+                <div className="spinner w-4 h-4 border-2" />
+              ) : (
+                <>
+                  <span>Sign In</span>
+                  <FiArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
           </form>
 
           {/* Quick Demo Logins Helper */}
-          <div className="pt-4 border-t border-iron/60 space-y-2.5">
-            <span className="text-[11px] text-smoke block font-mono uppercase tracking-wider text-center">
+          <div className="pt-4 border-t border-dark-700/60 space-y-2">
+            <span className="text-[11px] text-gray-400 block font-semibold uppercase tracking-wider text-center">
               ⚡ One-Click Demo Logins
             </span>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
+              <button
+                type="button"
                 onClick={() => handleQuickLogin("ashish@developer.io", "password123")}
-                className="text-[10px] py-1.5 px-2"
+                className="p-2 rounded-lg bg-dark-900/80 hover:bg-dark-700 border border-dark-700 text-[10px] text-primary-300 font-medium transition text-center"
                 title="ashish@developer.io / password123"
               >
                 Dev: Ashish
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
+              </button>
+              <button
+                type="button"
                 onClick={() => handleQuickLogin("aarav.ngo@example.org", "password123")}
-                className="text-[10px] py-1.5 px-2"
+                className="p-2 rounded-lg bg-dark-900/80 hover:bg-dark-700 border border-dark-700 text-[10px] text-accent-300 font-medium transition text-center"
                 title="aarav.ngo@example.org / password123"
               >
                 Provider: Aarav
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
+              </button>
+              <button
+                type="button"
                 onClick={() => handleQuickLogin("maya.sen@rhi-care.org", "password123")}
-                className="text-[10px] py-1.5 px-2 text-emerald-400 border-emerald-500/30"
+                className="p-2 rounded-lg bg-dark-900/80 hover:bg-dark-700 border border-dark-700 text-[10px] text-emerald-300 font-medium transition text-center"
                 title="maya.sen@rhi-care.org / password123"
               >
                 Provider: Dr. Maya
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
+              </button>
+              <button
+                type="button"
                 onClick={() => handleQuickLogin("admin@solvex.com", "adminPassword123!")}
-                className="text-[10px] py-1.5 px-2 text-amber-400 border-amber-500/30"
+                className="p-2 rounded-lg bg-dark-900/80 hover:bg-dark-700 border border-dark-700 text-[10px] text-amber-300 font-medium transition text-center"
                 title="admin@solvex.com / adminPassword123!"
               >
                 Admin
-              </Button>
+              </button>
             </div>
           </div>
-        </Card>
+        </div>
 
         {/* Footer info */}
-        <p className="text-center text-xs text-smoke font-mono">
+        <p className="text-center text-xs text-gray-400">
           Don't have an account yet?{" "}
-          <Link to="/register" className="text-lime hover:underline font-semibold">
+          <Link to="/register" className="text-primary-400 font-semibold hover:underline">
             Register here
           </Link>
         </p>
-      </Container>
+      </div>
     </div>
   );
 };
