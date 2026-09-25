@@ -1,12 +1,13 @@
 import React, { useState, useContext } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { FiMail, FiLock, FiArrowRight, FiShield, FiUserCheck } from "react-icons/fi";
+import { FiMail, FiLock, FiArrowRight, FiShield, FiUserCheck, FiEye, FiEyeOff } from "react-icons/fi";
 import { AuthContext } from "../../context/AuthContext";
 
 const Login = () => {
   const { login } = useContext(AuthContext);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -19,7 +20,10 @@ const Login = () => {
     setError("");
     setLoading(true);
 
-    const result = await login(email, password);
+    const cleanEmail = email.trim().replace(/^["']|["']$/g, "").toLowerCase();
+    const cleanPassword = password.trim().replace(/^["']|["']$/g, "");
+
+    const result = await login(cleanEmail, cleanPassword);
     setLoading(false);
 
     if (result.success) {
@@ -89,13 +93,21 @@ const Login = () => {
               <div className="relative">
                 <FiLock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   required
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="input-field pl-10 text-xs"
+                  className="input-field pl-10 pr-10 text-xs"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200 text-xs"
+                  title={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 
@@ -120,25 +132,36 @@ const Login = () => {
             <span className="text-[11px] text-gray-400 block font-semibold uppercase tracking-wider text-center">
               ⚡ One-Click Demo Logins
             </span>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <button
                 type="button"
                 onClick={() => handleQuickLogin("ashish@developer.io", "password123")}
                 className="p-2 rounded-lg bg-dark-900/80 hover:bg-dark-700 border border-dark-700 text-[10px] text-primary-300 font-medium transition text-center"
+                title="ashish@developer.io / password123"
               >
-                Developer
+                Dev: Ashish
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickLogin("aarav.ngo@example.org", "password123")}
                 className="p-2 rounded-lg bg-dark-900/80 hover:bg-dark-700 border border-dark-700 text-[10px] text-accent-300 font-medium transition text-center"
+                title="aarav.ngo@example.org / password123"
               >
-                Provider
+                Provider: Aarav
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickLogin("maya.sen@rhi-care.org", "password123")}
+                className="p-2 rounded-lg bg-dark-900/80 hover:bg-dark-700 border border-dark-700 text-[10px] text-emerald-300 font-medium transition text-center"
+                title="maya.sen@rhi-care.org / password123"
+              >
+                Provider: Dr. Maya
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickLogin("admin@solvex.com", "adminPassword123!")}
                 className="p-2 rounded-lg bg-dark-900/80 hover:bg-dark-700 border border-dark-700 text-[10px] text-amber-300 font-medium transition text-center"
+                title="admin@solvex.com / adminPassword123!"
               >
                 Admin
               </button>
