@@ -2,15 +2,23 @@ import React, { useState, useEffect, useCallback, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   FiSearch,
-  FiFilter,
   FiDollarSign,
   FiUsers,
   FiCalendar,
   FiArrowRight,
-  FiTag,
+  FiFilter,
 } from "react-icons/fi";
 import { AuthContext } from "../../context/AuthContext";
 import api from "../../services/api";
+import {
+  Container,
+  PageHeader,
+  Card,
+  Button,
+  Badge,
+  Input,
+  Select,
+} from "../../components/ui";
 
 const ExploreProblems = () => {
   const { user } = useContext(AuthContext);
@@ -26,10 +34,10 @@ const ExploreProblems = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
-  // Problem Providers manage their own challenges and do not need the public Explore directory
+  // Problem Providers manage their own challenges and are directed to find developers
   useEffect(() => {
     if (user?.role === "PROBLEM_PROVIDER") {
-      navigate("/provider/dashboard", { replace: true });
+      navigate("/provider/find", { replace: true });
     }
   }, [user, navigate]);
 
@@ -42,11 +50,15 @@ const ExploreProblems = () => {
       if (skill) params.append("skill", skill);
       if (budgetType) params.append("budgetType", budgetType);
       if (status) params.append("status", status);
+      params.append("excludeCompleted", "true");
       params.append("page", page);
       params.append("limit", 12);
 
       const res = await api.get(`/projects?${params.toString()}`);
-      setProjects(res.data.projects || []);
+      const activeProjects = (res.data.projects || []).filter(
+        (p) => p.status !== "COMPLETED"
+      );
+      setProjects(activeProjects);
       setTotalPages(res.data.pages || 1);
       setTotalCount(res.data.total || 0);
     } catch (err) {
@@ -69,128 +81,109 @@ const ExploreProblems = () => {
   const getStatusBadge = (st) => {
     switch (st) {
       case "OPEN":
-        return <span className="badge badge-success">OPEN FOR REQUESTS</span>;
+        return <Badge variant="success" size="sm">OPEN</Badge>;
       case "LEADER_SELECTED":
       case "TEAM_FORMING":
-        return <span className="badge badge-warning">TEAM FORMING</span>;
+        return <Badge variant="warning" size="sm">TEAM FORMING</Badge>;
       case "IN_DEVELOPMENT":
-        return <span className="badge badge-primary">IN DEVELOPMENT</span>;
+        return <Badge variant="lime" size="sm">IN DEVELOPMENT</Badge>;
       case "COMPLETED":
-        return <span className="badge badge-accent">COMPLETED</span>;
+        return <Badge variant="success" size="sm">COMPLETED</Badge>;
       default:
-        return <span className="badge badge-neutral">{st}</span>;
+        return <Badge variant="neutral" size="sm">{st}</Badge>;
     }
   };
 
   return (
-    <div className="page-container space-y-8">
+    <Container className="space-y-8 py-8">
       {/* Header */}
-      <div className="section-header">
-        <span className="badge badge-primary mb-2">Problem Directory</span>
-        <h1 className="section-title">Discover Real-World Problems</h1>
-        <p className="section-subtitle">
-          Browse vetted community and non-profit challenges ready for software solutions.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="PROBLEM DIRECTORY"
+        title="Discover Real-World Problems"
+        description="Browse vetted community and non-profit challenges ready for high-impact software engineering teams."
+      />
 
-      {/* Filter and Search Bar */}
-      <div className="glass-card p-5 space-y-4">
+      {/* Filter and Search Card */}
+      <Card className="p-5 space-y-4">
         <form onSubmit={handleSearchSubmit} className="flex flex-col md:flex-row gap-3">
-          <div className="relative flex-1">
-            <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Search problems by title, keywords, or requirements..."
+          <div className="flex-1">
+            <Input
+              icon={FiSearch}
+              placeholder="Search problems by title, keywords, requirements..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="input-field pl-10"
             />
           </div>
-          <button type="submit" className="btn-primary flex items-center justify-center gap-2">
-            <FiSearch className="w-4 h-4" /> Search
-          </button>
+          <Button type="submit" variant="primary" size="md" icon={FiSearch}>
+            Search
+          </Button>
         </form>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-dark-700/60">
-          <div>
-            <label className="input-label text-xs">Category</label>
-            <input
-              type="text"
-              placeholder="e.g. Healthcare, Food..."
-              value={category}
-              onChange={(e) => {
-                setCategory(e.target.value);
-                setPage(1);
-              }}
-              className="input-field py-2 text-xs"
-            />
-          </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-iron/60">
+          <Input
+            label="Category"
+            placeholder="e.g. Healthcare..."
+            value={category}
+            onChange={(e) => {
+              setCategory(e.target.value);
+              setPage(1);
+            }}
+          />
 
-          <div>
-            <label className="input-label text-xs">Skill</label>
-            <input
-              type="text"
-              placeholder="e.g. React, Node.js..."
-              value={skill}
-              onChange={(e) => {
-                setSkill(e.target.value);
-                setPage(1);
-              }}
-              className="input-field py-2 text-xs"
-            />
-          </div>
+          <Input
+            label="Skill"
+            placeholder="e.g. React, Node.js..."
+            value={skill}
+            onChange={(e) => {
+              setSkill(e.target.value);
+              setPage(1);
+            }}
+          />
 
-          <div>
-            <label className="input-label text-xs">Budget Type</label>
-            <select
-              value={budgetType}
-              onChange={(e) => {
-                setBudgetType(e.target.value);
-                setPage(1);
-              }}
-              className="select-field py-2 text-xs"
-            >
-              <option value="">All Budgets</option>
-              <option value="Fixed">Fixed Budget</option>
-              <option value="Negotiable">Negotiable</option>
-              <option value="Volunteer">Volunteer / Free</option>
-            </select>
-          </div>
+          <Select
+            label="Budget Type"
+            value={budgetType}
+            onChange={(e) => {
+              setBudgetType(e.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="">All Budgets</option>
+            <option value="Fixed">Fixed Budget</option>
+            <option value="Negotiable">Negotiable</option>
+            <option value="Volunteer">Volunteer / Free</option>
+          </Select>
 
-          <div>
-            <label className="input-label text-xs">Status</label>
-            <select
-              value={status}
-              onChange={(e) => {
-                setStatus(e.target.value);
-                setPage(1);
-              }}
-              className="select-field py-2 text-xs"
-            >
-              <option value="">All Statuses</option>
-              <option value="OPEN">Open (Accepting)</option>
-              <option value="TEAM_FORMING">Team Forming</option>
-              <option value="IN_DEVELOPMENT">In Development</option>
-              <option value="COMPLETED">Completed</option>
-            </select>
-          </div>
+          <Select
+            label="Status"
+            value={status}
+            onChange={(e) => {
+              setStatus(e.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="">All Active Statuses</option>
+            <option value="OPEN">Open (Accepting)</option>
+            <option value="TEAM_FORMING">Team Forming</option>
+            <option value="IN_DEVELOPMENT">In Development</option>
+          </Select>
         </div>
-      </div>
+      </Card>
 
       {/* Results Header */}
-      <div className="flex items-center justify-between text-xs text-gray-400">
+      <div className="flex items-center justify-between text-xs text-smoke font-mono">
         <span>Showing {projects.length} of {totalCount} problems</span>
-        {(search || category || skill || budgetType || status !== "OPEN") && (
+        {(search || category || skill || budgetType || status !== "") && (
           <button
             onClick={() => {
               setSearch("");
               setCategory("");
               setSkill("");
               setBudgetType("");
-              setStatus("OPEN");
+              setStatus("");
               setPage(1);
             }}
-            className="text-primary-400 hover:underline"
+            className="text-lime hover:underline cursor-pointer"
           >
             Reset Filters
           </button>
@@ -201,44 +194,44 @@ const ExploreProblems = () => {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="glass-card p-6 space-y-4 animate-pulse">
-              <div className="skeleton-title" />
-              <div className="skeleton-text" />
-              <div className="skeleton-text" />
-              <div className="skeleton-avatar" />
-            </div>
+            <Card key={i} className="p-6 space-y-4 animate-pulse">
+              <div className="h-5 bg-graphite rounded-inputs w-2/3" />
+              <div className="h-3 bg-graphite rounded-inputs w-full" />
+              <div className="h-3 bg-graphite rounded-inputs w-4/5" />
+            </Card>
           ))}
         </div>
       ) : projects.length === 0 ? (
-        <div className="empty-state glass-card">
-          <FiFilter className="empty-state-icon" />
-          <h3 className="text-lg font-bold text-white mb-1">No Problems Found</h3>
-          <p className="empty-state-text text-sm">
+        <Card className="p-12 text-center text-smoke space-y-3">
+          <FiFilter className="w-8 h-8 text-iron mx-auto" />
+          <h3 className="text-base font-bold text-white">No Problems Found</h3>
+          <p className="text-xs text-smoke">
             Try adjusting your search criteria or category filters.
           </p>
-        </div>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.map((p) => (
-            <div
+            <Card
               key={p._id}
-              className="glass-card-hover p-6 flex flex-col justify-between space-y-4"
+              hoverable
+              className="p-6 flex flex-col justify-between space-y-4"
             >
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   {getStatusBadge(p.status)}
                   {p.category && (
-                    <span className="text-[11px] text-gray-400 truncate max-w-[120px]">
+                    <span className="text-[11px] text-smoke font-mono truncate max-w-[120px]">
                       {p.category}
                     </span>
                   )}
                 </div>
 
-                <h3 className="text-base font-bold text-white hover:text-primary-400 transition leading-snug">
+                <h3 className="text-base font-bold text-white hover:text-lime transition-colors leading-snug">
                   <Link to={`/projects/${p._id}`}>{p.title}</Link>
                 </h3>
 
-                <p className="text-xs text-gray-400 line-clamp-3 leading-relaxed">
+                <p className="text-xs text-smoke line-clamp-3 leading-relaxed">
                   {p.description}
                 </p>
 
@@ -246,12 +239,12 @@ const ExploreProblems = () => {
                 {p.requiredSkills && p.requiredSkills.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {p.requiredSkills.slice(0, 4).map((sk, idx) => (
-                      <span key={idx} className="badge badge-neutral text-[10px] py-0.5 px-2">
+                      <Badge key={idx} variant="neutral" size="sm" pill={false}>
                         {sk}
-                      </span>
+                      </Badge>
                     ))}
                     {p.requiredSkills.length > 4 && (
-                      <span className="text-[10px] text-gray-500 self-center">
+                      <span className="text-[10px] text-smoke self-center font-mono">
                         +{p.requiredSkills.length - 4} more
                       </span>
                     )}
@@ -260,51 +253,54 @@ const ExploreProblems = () => {
               </div>
 
               {/* Card Meta & Actions */}
-              <div className="pt-4 border-t border-dark-700/60 space-y-3">
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="flex items-center gap-1.5 text-gray-400">
-                    <FiDollarSign className="w-3.5 h-3.5 text-emerald-400" />
+              <div className="pt-4 border-t border-iron/60 space-y-3">
+                <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+                  <div className="flex items-center gap-1.5 text-smoke">
+                    <FiDollarSign className="w-3.5 h-3.5 text-lime" />
                     <span>
                       {p.budgetType === "Volunteer"
                         ? "Volunteer"
                         : `${p.currency || "INR"} ${p.budgetAmount?.toLocaleString() || "Negotiable"}`}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-gray-400 justify-end">
-                    <FiUsers className="w-3.5 h-3.5 text-primary-400" />
+                  <div className="flex items-center gap-1.5 text-smoke justify-end">
+                    <FiUsers className="w-3.5 h-3.5 text-white" />
                     <span>
                       {p.teamMembers?.length || 0}/{p.maxTeamSize || 5} Team
                     </span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-[11px] text-gray-400 pt-1">
+                <div className="flex items-center justify-between text-[11px] text-smoke pt-1">
                   <span>
                     {p.projectLeader ? (
-                      <span className="text-accent-400 font-semibold">
-                        👑 Leader: {p.projectLeader.name}
+                      <span className="text-lime font-mono">
+                        👑 {p.projectLeader.name}
                       </span>
                     ) : (
                       <span>Provider: {p.problemProvider?.name || "Community"}</span>
                     )}
                   </span>
                   {p.deadline && (
-                    <span className="flex items-center gap-1 text-gray-500">
+                    <span className="flex items-center gap-1 text-fog font-mono text-[10px]">
                       <FiCalendar className="w-3 h-3" />
                       {new Date(p.deadline).toLocaleDateString()}
                     </span>
                   )}
                 </div>
 
-                <Link
+                <Button
                   to={`/projects/${p._id}`}
-                  className="btn-primary btn-sm w-full text-center flex items-center justify-center gap-1.5"
+                  variant="primary"
+                  size="sm"
+                  className="w-full"
+                  icon={FiArrowRight}
+                  iconPosition="right"
                 >
-                  <span>View Details</span>
-                  <FiArrowRight className="w-3.5 h-3.5" />
-                </Link>
+                  View Details
+                </Button>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}
@@ -312,26 +308,28 @@ const ExploreProblems = () => {
       {/* Pagination Bar */}
       {totalPages > 1 && (
         <div className="flex justify-center items-center gap-2 pt-6">
-          <button
+          <Button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="btn-secondary btn-sm disabled:opacity-40"
+            variant="secondary"
+            size="sm"
           >
             Previous
-          </button>
-          <span className="text-xs text-gray-400 px-3">
+          </Button>
+          <span className="text-xs text-smoke font-mono px-3">
             Page {page} of {totalPages}
           </span>
-          <button
+          <Button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="btn-secondary btn-sm disabled:opacity-40"
+            variant="secondary"
+            size="sm"
           >
             Next
-          </button>
+          </Button>
         </div>
       )}
-    </div>
+    </Container>
   );
 };
 

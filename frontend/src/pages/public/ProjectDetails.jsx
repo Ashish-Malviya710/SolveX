@@ -143,7 +143,7 @@ const ProjectDetails = () => {
   );
   const [targetMember, setTargetMember] = useState("");
   const [chatInput, setChatInput] = useState("");
-  const chatBottomRef = useRef(null);
+  const chatMessagesRef = useRef(null);
 
   // Keep chatType synchronized if user role is PROBLEM_PROVIDER
   useEffect(() => {
@@ -210,8 +210,14 @@ const ProjectDetails = () => {
   }, [activeTab, chatType, targetMember, id, project, joinRoom, setMessages]);
 
   useEffect(() => {
-    if (activeTab === "chat") {
-      chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (activeTab === "chat" && chatMessagesRef.current) {
+      const el = chatMessagesRef.current;
+      // Scroll only the chat container to bottom, preventing the browser window from jumping or scrolling up
+      requestAnimationFrame(() => {
+        if (el) {
+          el.scrollTop = el.scrollHeight;
+        }
+      });
     }
   }, [messages, activeTab]);
 
@@ -696,7 +702,7 @@ const ProjectDetails = () => {
   }
 
   return (
-    <div className="page-container space-y-8">
+    <div className="max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       {/* Notifications Alert Banner */}
       {actionSuccess && (
         <div className="p-4 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs rounded-xl flex items-center justify-between animate-slide-down">
@@ -717,249 +723,346 @@ const ProjectDetails = () => {
         </div>
       )}
 
-      {/* Top Project Banner */}
-      <div className="glass-card p-6 sm:p-8 space-y-6">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-3xl">
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <span className="badge badge-primary text-xs py-1 px-3">
-                {project.status.replace("_", " ")}
-              </span>
-              {project.category && (
-                <span className="badge badge-neutral text-xs py-1 px-3">
-                  {project.category}
-                </span>
-              )}
-              {project.aiComplexity && (
-                <span className="badge badge-accent text-xs py-1 px-3">
-                  {project.aiComplexity} Complexity
-                </span>
-              )}
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-white">
-              {project.title}
-            </h1>
-            <p className="text-xs text-gray-400">
-              Submitted by <strong className="text-gray-200">{project.problemProvider?.name}</strong> • Created on {new Date(project.createdAt).toLocaleDateString()}
-            </p>
-          </div>
-
-          {/* Quick Action Button for Developers */}
-          <div className="flex items-center gap-3">
-            {user?.role === "DEVELOPER" && !isParticipant && ["OPEN", "LEADER_SELECTED", "TEAM_FORMING", "PROPOSAL_PENDING", "CHANGES_REQUESTED", "APPROVED", "IN_DEVELOPMENT"].includes(project.status) && (
-              project.teamMembers?.length < (project.maxTeamSize || 5) ? (
-                <button
-                  onClick={() => setRequestModalOpen(true)}
-                  className="btn-primary flex items-center gap-2 shadow-glow-sm"
-                >
-                  <FiSend className="w-4 h-4" />
-                  <span>
-                    {!project.projectLeader ? "Request to Solve & Lead" : "Request to Join Team"}
-                  </span>
-                </button>
-              ) : (
-                <span className="badge badge-neutral text-xs py-1.5 px-3">Team Full</span>
-              )
-            )}
-          </div>
-        </div>
-
-        {/* Project Navigation Tabs */}
-        <div className="tab-list pt-2">
+      {/* Workspace Body: Left Sidebar Navigation + Main Content Area */}
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
+        {/* Left Sidebar Navigation - Direct Button Form */}
+        <aside className="w-full lg:w-80 xl:w-[320px] shrink-0 space-y-2.5 lg:sticky lg:top-20">
           {[
-            { id: "overview", label: "Overview", icon: FiFileText },
-            ...(project?.blueprint ? [{ id: "blueprint", label: "Technical Blueprint", icon: FiCpu }] : []),
-            { id: "requirements", label: "AI Requirements", icon: FiCpu },
+            {
+              id: "overview",
+              label: "Overview",
+              icon: FiFileText,
+              iconColor: "text-sky-400",
+              iconBg: "bg-sky-500/10",
+            },
+            ...(project?.blueprint
+              ? [
+                  {
+                    id: "blueprint",
+                    label: "Technical Blueprint",
+                    icon: FiCpu,
+                    iconColor: "text-lime",
+                    iconBg: "bg-lime/10",
+                  },
+                ]
+              : []),
             {
               id: "team",
-              label: (isLeader || isProvider || isAdmin) && pendingRequestsCount > 0
-                ? `Team (${project.teamMembers?.length || 0}/${project.maxTeamSize || 5}) • ${pendingRequestsCount} New`
-                : `Team (${project.teamMembers?.length || 0}/${project.maxTeamSize || 5})`,
+              label: "Project Team",
               icon: FiUsers,
+              iconColor: "text-cyan-400",
+              iconBg: "bg-cyan-500/10",
             },
-            ...(isParticipant ? [{ id: "chat", label: "Project Chat", icon: FiMessageSquare }] : []),
-            { id: "proposal", label: "Project Structure", icon: FiCheckSquare },
-            ...(isParticipant ? [{ id: "github", label: "GitHub Grid", icon: FiGithub }] : []),
-            ...(isParticipant && project?.githubRepoUrl ? [
-              { id: "contributions", label: "Contributions", icon: FiAward },
-              { id: "progress", label: "Progress", icon: FiTrendingUp },
-              { id: "activity", label: "Activity", icon: FiActivity },
-            ] : []),
-            { id: "solution", label: "Solution & Delivery", icon: FiCheckCircle },
-            { id: "impact", label: "Social Impact", icon: FiHeart },
+            ...(isParticipant
+              ? [
+                  {
+                    id: "chat",
+                    label: "Project Chat",
+                    icon: FiMessageSquare,
+                    iconColor: "text-emerald-400",
+                    iconBg: "bg-emerald-500/10",
+                  },
+                ]
+              : []),
+            {
+              id: "proposal",
+              label: "Project Structure",
+              icon: FiCheckSquare,
+              iconColor: "text-amber-400",
+              iconBg: "bg-amber-500/10",
+            },
+            ...(isParticipant
+              ? [
+                  {
+                    id: "github",
+                    label: "GitHub Grid",
+                    icon: FiGithub,
+                    iconColor: "text-paper",
+                    iconBg: "bg-void/70",
+                  },
+                  ...(project?.githubRepoUrl
+                    ? [
+                        {
+                          id: "contributions",
+                          label: "Contributions",
+                          icon: FiAward,
+                          iconColor: "text-yellow-400",
+                          iconBg: "bg-yellow-500/10",
+                        },
+                        {
+                          id: "progress",
+                          label: "Progress",
+                          icon: FiTrendingUp,
+                          iconColor: "text-cyan-400",
+                          iconBg: "bg-cyan-500/10",
+                        },
+                        {
+                          id: "activity",
+                          label: "Activity",
+                          icon: FiActivity,
+                          iconColor: "text-fuchsia-400",
+                          iconBg: "bg-fuchsia-500/10",
+                        },
+                      ]
+                    : []),
+                ]
+              : []),
+            {
+              id: "solution",
+              label: "Solution & Delivery",
+              icon: FiCheckCircle,
+              iconColor: "text-emerald-400",
+              iconBg: "bg-emerald-500/10",
+            },
+            {
+              id: "impact",
+              label: "Social Impact",
+              icon: FiHeart,
+              iconColor: "text-rose-400",
+              iconBg: "bg-rose-500/10",
+            },
           ].map((tab) => {
             const Icon = tab.icon;
             const active = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
+                type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={active ? "tab-item-active" : "tab-item"}
+                className={`w-full text-left px-4 py-3.5 rounded-xl font-mono transition-all duration-200 flex items-center gap-3.5 group ${
+                  active
+                    ? "bg-graphite border-l-4 border-lime text-paper shadow-glow-sm"
+                    : "bg-carbon/80 hover:bg-graphite/60 text-smoke hover:text-paper"
+                }`}
               >
-                <div className="flex items-center gap-1.5">
+                <div
+                  className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-all ${
+                    active
+                      ? "bg-lime text-black font-bold shadow-glow-sm"
+                      : `${tab.iconBg} ${tab.iconColor} group-hover:scale-105`
+                  }`}
+                >
                   <Icon className="w-4 h-4" />
-                  <span>{tab.label}</span>
                 </div>
+                <span
+                  className={`text-sm font-semibold truncate ${
+                    active ? "text-lime font-bold" : "text-bone group-hover:text-paper"
+                  }`}
+                >
+                  {tab.label}
+                </span>
               </button>
             );
           })}
-        </div>
-      </div>
+        </aside>
 
-      {/* TAB CONTENT AREA */}
+        {/* Right Main Content Area */}
+        <main className="flex-1 min-w-0 space-y-6 w-full">
+          {/* TAB CONTENT AREA */}
 
-      {/* 1. OVERVIEW TAB */}
-      {activeTab === "overview" && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-6">
-            <div className="glass-card p-6 space-y-4">
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-                Problem Description
-              </h3>
-              <p className="text-sm text-gray-300 whitespace-pre-line leading-relaxed">
-                {project.description}
-              </p>
-            </div>
+          {/* 1. OVERVIEW TAB */}
+          {activeTab === "overview" && (
+            <div className="space-y-6">
+              {/* Project Hero Header inside Overview */}
+              <div className="glass-card p-6 sm:p-8 space-y-4">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                  <div className="space-y-2 max-w-3xl">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <span className="badge badge-primary text-xs py-1 px-3">
+                        {project.status.replace("_", " ")}
+                      </span>
+                      {project.category && (
+                        <span className="badge badge-neutral text-xs py-1 px-3">
+                          {project.category}
+                        </span>
+                      )}
+                      {project.aiComplexity && (
+                        <span className="badge badge-accent text-xs py-1 px-3">
+                          {project.aiComplexity} Complexity
+                        </span>
+                      )}
+                    </div>
+                    <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-white">
+                      {project.title}
+                    </h1>
+                    <p className="text-xs text-gray-400">
+                      Submitted by <strong className="text-gray-200">{project.problemProvider?.name}</strong> • Created on {new Date(project.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
 
-            {project.requiredFeatures && (
-              <div className="glass-card p-6 space-y-2">
-                <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-                  Provider Stated Requirements
-                </h3>
-                <p className="text-xs text-gray-300 leading-relaxed">
-                  {project.requiredFeatures}
-                </p>
-              </div>
-            )}
-
-            {project.requiredSkills && project.requiredSkills.length > 0 && (
-              <div className="glass-card p-6 space-y-3">
-                <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-                  Target Technical Skills
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {project.requiredSkills.map((sk, idx) => (
-                    <span key={idx} className="badge badge-primary text-xs py-1 px-3">
-                      {sk}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Sidebar Meta Info */}
-          <div className="space-y-6">
-            <div className="glass-card p-6 space-y-4">
-              <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                Project Parameters
-              </h4>
-              <div className="space-y-3 text-xs">
-                <div className="flex items-center justify-between pb-2 border-b border-dark-700/60">
-                  <span className="text-gray-400 flex items-center gap-1.5">
-                    <FiDollarSign className="text-emerald-400" /> Budget
-                  </span>
-                  <span className="font-bold text-white">
-                    {project.budgetType === "Volunteer"
-                      ? "Volunteer / No Budget"
-                      : `${project.currency || "INR"} ${project.budgetAmount?.toLocaleString()} (${project.budgetType})`}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between pb-2 border-b border-dark-700/60">
-                  <span className="text-gray-400 flex items-center gap-1.5">
-                    <FiUsers className="text-primary-400" /> Max Team Size
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-white">{project.maxTeamSize || 5} Developers</span>
-                    {(isLeader || isProvider || isAdmin) && (
-                      <button
-                        onClick={() => {
-                          setNewTeamSize(project.maxTeamSize || 5);
-                          setTeamSizeModalOpen(true);
-                          setTeamSizeError("");
-                        }}
-                        className="text-xs text-primary-400 hover:text-primary-300 underline flex items-center gap-1 ml-1"
-                        title="Decide or adjust team capacity"
-                      >
-                        <FiEdit className="w-3 h-3" />
-                        <span>Edit</span>
-                      </button>
+                  {/* Quick Action Button for Developers */}
+                  <div className="flex items-center gap-3">
+                    {user?.role === "DEVELOPER" && !isParticipant && ["OPEN", "LEADER_SELECTED", "TEAM_FORMING", "PROPOSAL_PENDING", "CHANGES_REQUESTED", "APPROVED", "IN_DEVELOPMENT"].includes(project.status) && (
+                      project.teamMembers?.length < (project.maxTeamSize || 5) ? (
+                        <button
+                          onClick={() => setRequestModalOpen(true)}
+                          className="btn-primary flex items-center gap-2 shadow-glow-sm"
+                        >
+                          <FiSend className="w-4 h-4" />
+                          <span>
+                            {!project.projectLeader ? "Request to Solve & Lead" : "Request to Join Team"}
+                          </span>
+                        </button>
+                      ) : (
+                        <span className="badge badge-neutral text-xs py-1.5 px-3">Team Full</span>
+                      )
                     )}
                   </div>
                 </div>
-
-                {project.expectedDuration && (
-                  <div className="flex items-center justify-between pb-2 border-b border-dark-700/60">
-                    <span className="text-gray-400 flex items-center gap-1.5">
-                      <FiClock className="text-amber-400" /> Duration
-                    </span>
-                    <span className="font-bold text-white">{project.expectedDuration}</span>
-                  </div>
-                )}
-
-                {project.deadline && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400 flex items-center gap-1.5">
-                      <FiCalendar className="text-accent-400" /> Target Deadline
-                    </span>
-                    <span className="font-bold text-white">
-                      {new Date(project.deadline).toLocaleDateString()}
-                    </span>
-                  </div>
-                )}
               </div>
-            </div>
 
-            {/* Provider Card */}
-            <div className="glass-card p-6 space-y-3">
-              <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                Problem Provider
-              </h4>
-              <div className="flex items-center gap-3">
-                <div className="avatar">
-                  {project.problemProvider?.name?.charAt(0)}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-bold text-white truncate">
-                    {project.problemProvider?.name}
-                  </p>
-                  <p className="text-xs text-gray-400 truncate">
-                    {project.problemProvider?.email}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Leader Card */}
-            <div className="glass-card p-6 space-y-3">
-              <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                Project Leader 👑
-              </h4>
-              {project.projectLeader ? (
-                <div className="flex items-center gap-3">
-                  <div className="avatar bg-gradient-to-tr from-accent-600 to-amber-500">
-                    {project.projectLeader?.name?.charAt(0)}
-                  </div>
-                  <div className="min-w-0">
-                    <Link
-                      to={`/developers/${project.projectLeader._id}`}
-                      className="text-sm font-bold text-white hover:text-primary-400 truncate block"
-                    >
-                      {project.projectLeader.name}
-                    </Link>
-                    <p className="text-xs text-accent-400 font-medium">
-                      {project.projectLeader.reputation || 0} pts
+              {/* Main Overview Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 space-y-6">
+                  <div className="glass-card p-6 space-y-4">
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                      Problem Description
+                    </h3>
+                    <p className="text-sm text-gray-300 whitespace-pre-line leading-relaxed">
+                      {project.description}
                     </p>
                   </div>
+
+                  {project.requiredFeatures && (
+                    <div className="glass-card p-6 space-y-2">
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                        Provider Stated Requirements
+                      </h3>
+                      <p className="text-xs text-gray-300 leading-relaxed">
+                        {project.requiredFeatures}
+                      </p>
+                    </div>
+                  )}
+
+                  {project.requiredSkills && project.requiredSkills.length > 0 && (
+                    <div className="glass-card p-6 space-y-3">
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                        Target Technical Skills
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {project.requiredSkills.map((sk, idx) => (
+                          <span key={idx} className="badge badge-primary text-xs py-1 px-3">
+                            {sk}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <p className="text-xs text-gray-500 italic">No leader selected yet.</p>
-              )}
+
+                {/* Sidebar Meta Info */}
+                <div className="space-y-6">
+                  <div className="glass-card p-6 space-y-4">
+                    <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                      Project Parameters
+                    </h4>
+                    <div className="space-y-3 text-xs">
+                      <div className="flex items-center justify-between pb-2 border-b border-dark-700/60">
+                        <span className="text-gray-400 flex items-center gap-1.5">
+                          <FiDollarSign className="text-emerald-400" /> Budget
+                        </span>
+                        <span className="font-bold text-white">
+                          {project.budgetType === "Volunteer"
+                            ? "Volunteer / No Budget"
+                            : `${project.currency || "INR"} ${project.budgetAmount?.toLocaleString()} (${project.budgetType})`}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between pb-2 border-b border-dark-700/60">
+                        <span className="text-gray-400 flex items-center gap-1.5">
+                          <FiUsers className="text-primary-400" /> Max Team Size
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-white">{project.maxTeamSize || 5} Developers</span>
+                          {(isLeader || isProvider || isAdmin) && (
+                            <button
+                              onClick={() => {
+                                setNewTeamSize(project.maxTeamSize || 5);
+                                setTeamSizeModalOpen(true);
+                                setTeamSizeError("");
+                              }}
+                              className="text-xs text-primary-400 hover:text-primary-300 underline flex items-center gap-1 ml-1"
+                              title="Decide or adjust team capacity"
+                            >
+                              <FiEdit className="w-3 h-3" />
+                              <span>Edit</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {project.expectedDuration && (
+                        <div className="flex items-center justify-between pb-2 border-b border-dark-700/60">
+                          <span className="text-gray-400 flex items-center gap-1.5">
+                            <FiClock className="text-amber-400" /> Duration
+                          </span>
+                          <span className="font-bold text-white">{project.expectedDuration}</span>
+                        </div>
+                      )}
+
+                      {project.deadline && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-400 flex items-center gap-1.5">
+                            <FiCalendar className="text-accent-400" /> Target Deadline
+                          </span>
+                          <span className="font-bold text-white">
+                            {new Date(project.deadline).toLocaleDateString()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Provider Card */}
+                  <div className="glass-card p-6 space-y-3">
+                    <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                      Problem Provider
+                    </h4>
+                    <div className="flex items-center gap-3">
+                      <div className="avatar">
+                        {project.problemProvider?.name?.charAt(0)}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-white truncate">
+                          {project.problemProvider?.name}
+                        </p>
+                        <p className="text-xs text-gray-400 truncate">
+                          {project.problemProvider?.email}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Leader Card */}
+                  <div className="glass-card p-6 space-y-3">
+                    <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                      Project Leader 👑
+                    </h4>
+                    {project.projectLeader ? (
+                      <div className="flex items-center gap-3">
+                        <div className="avatar bg-gradient-to-tr from-accent-600 to-amber-500">
+                          {project.projectLeader?.name?.charAt(0)}
+                        </div>
+                        <div className="min-w-0">
+                          <Link
+                            to={`/developers/${project.projectLeader._id}`}
+                            className="text-sm font-bold text-white hover:text-primary-400 truncate block"
+                          >
+                            {project.projectLeader.name}
+                          </Link>
+                          <p className="text-xs text-accent-400 font-medium">
+                            {project.projectLeader.reputation || 0} pts
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-500 italic">No leader selected yet.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
 
       {/* 1.5 TECHNICAL BLUEPRINT TAB */}
       {activeTab === "blueprint" && project?.blueprint && (
@@ -1101,129 +1204,6 @@ const ProjectDetails = () => {
         </div>
       )}
 
-      {/* 2. AI REQUIREMENTS TAB */}
-      {activeTab === "requirements" && (
-        <div className="space-y-6">
-          {/* Header & Controls Card */}
-          <div className="glass-card p-6 sm:p-8 space-y-6">
-            <div className="flex items-center justify-between pb-4 border-b border-dark-700/60 flex-wrap gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary-600/30 to-accent-600/30 text-primary-400 flex items-center justify-center font-bold border border-primary-500/30 shadow-glow-sm">
-                  <FiCpu className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-base sm:text-lg font-bold text-white">
-                      AI Problem Analysis & Scope Breakdown
-                    </h3>
-                    {project.aiComplexity && (
-                      <span className="badge badge-accent text-[11px] py-0.5 px-2.5">
-                        {project.aiComplexity} Scope
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-xs text-gray-400">
-                    Distilled from the Problem Provider's full statement using Groq Llama 3.3
-                  </span>
-                </div>
-              </div>
-
-              {isProvider && (
-                <button
-                  onClick={handleRerunAI}
-                  disabled={rerunningAI}
-                  className="btn-primary btn-sm flex items-center gap-2 shadow-glow-sm"
-                >
-                  <FiRefreshCw className={`w-3.5 h-3.5 ${rerunningAI ? "animate-spin" : ""}`} />
-                  <span>{rerunningAI ? "Synthesizing Requirements..." : "Re-Run AI Analysis"}</span>
-                </button>
-              )}
-            </div>
-
-            {/* Provider's Raw Problem Context */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="input-label text-xs uppercase tracking-wider text-gray-400 font-bold">
-                  Problem Provider's Raw Narrative & Inputs
-                </span>
-                {project.category && (
-                  <span className="badge badge-neutral text-[10px]">
-                    Category: {project.category}
-                  </span>
-                )}
-              </div>
-              <div className="bg-dark-900/90 border border-dark-700/70 p-4 rounded-xl space-y-2 text-xs">
-                <p className="text-gray-300 leading-relaxed whitespace-pre-line">
-                  {project.description}
-                </p>
-                {project.requiredFeatures && (
-                  <div className="pt-2 border-t border-dark-800 text-[11px] text-gray-400">
-                    <strong className="text-gray-300">Raw Requested Features:</strong> {project.requiredFeatures}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* AI Synthesized Technical Summary */}
-            <div className="space-y-2 pt-2">
-              <span className="input-label text-xs uppercase tracking-wider text-primary-400 font-bold flex items-center gap-1.5">
-                <FiCheckCircle className="w-3.5 h-3.5" />
-                Synthesized Executive Technical Solution
-              </span>
-              <p className="text-sm text-gray-200 leading-relaxed bg-primary-950/20 border border-primary-500/30 p-4 rounded-xl font-normal shadow-sm">
-                {project.aiSummary || "AI analysis not generated yet."}
-              </p>
-            </div>
-
-            {/* Suggested Functional Requirements Checklist */}
-            <div className="space-y-3 pt-2">
-              <span className="input-label text-xs uppercase tracking-wider text-accent-400 font-bold flex items-center gap-1.5">
-                <FiCheckSquare className="w-3.5 h-3.5" />
-                AI-Extracted Functional Specifications
-              </span>
-              {project.aiSuggestedFeatures && project.aiSuggestedFeatures.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {project.aiSuggestedFeatures.map((feat, idx) => {
-                    const [featureTitle, ...featureDescParts] = feat.includes(":") ? feat.split(":") : [feat, ""];
-                    const featureDesc = featureDescParts.join(":").trim();
-                    return (
-                      <div
-                        key={idx}
-                        className="p-3.5 bg-dark-900/80 border border-dark-700/80 rounded-xl flex items-start gap-3 text-xs text-gray-200 hover:border-dark-600 transition"
-                      >
-                        <span className="w-6 h-6 rounded-lg bg-primary-600/20 text-primary-400 flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5">
-                          {idx + 1}
-                        </span>
-                        <div className="space-y-0.5 min-w-0">
-                          <p className="font-bold text-white tracking-wide">{featureTitle.trim()}</p>
-                          {featureDesc && <p className="text-gray-400 text-[11px] leading-relaxed">{featureDesc}</p>}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-xs text-gray-500 italic">No suggested features extracted.</p>
-              )}
-            </div>
-
-            {/* Suggested Technologies */}
-            <div className="space-y-2 pt-2">
-              <span className="input-label text-xs uppercase tracking-wider text-emerald-400 font-bold flex items-center gap-1.5">
-                <FiCpu className="w-3.5 h-3.5" />
-                Recommended Architecture & Technology Stack
-              </span>
-              <div className="flex flex-wrap gap-2 pt-1">
-                {project.aiSuggestedSkills?.map((s, idx) => (
-                  <span key={idx} className="badge badge-success text-xs py-1 px-3">
-                    {s}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 3. TEAM TAB */}
       {activeTab === "team" && (
@@ -1704,7 +1684,7 @@ const ProjectDetails = () => {
             </div>
 
             {/* Messages Feed */}
-            <div className="flex-1 p-4 overflow-y-auto space-y-3">
+            <div ref={chatMessagesRef} className="flex-1 p-4 overflow-y-auto space-y-3">
               {messages.length === 0 ? (
                 <div className="text-center py-16 text-gray-500 text-xs">
                   No messages in this channel yet. Say hello!
@@ -1735,7 +1715,6 @@ const ProjectDetails = () => {
                   );
                 })
               )}
-              <div ref={chatBottomRef} />
             </div>
 
             {/* Chat Input */}
@@ -2788,6 +2767,8 @@ const ProjectDetails = () => {
           </div>
         </div>
       )}
+        </main>
+      </div>
 
       {/* REQUEST TO SOLVE / JOIN MODAL */}
       {requestModalOpen && (

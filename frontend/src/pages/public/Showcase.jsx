@@ -3,18 +3,22 @@ import { Link } from "react-router-dom";
 import {
   FiExternalLink,
   FiGithub,
-  FiUsers,
   FiHeart,
-  FiAward,
   FiCheckCircle,
   FiLayers,
 } from "react-icons/fi";
 import api from "../../services/api";
+import {
+  Container,
+  PageHeader,
+  Card,
+  Button,
+  Badge,
+} from "../../components/ui";
 
 const Showcase = () => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [totalCount, setTotalCount] = useState(0);
 
   useEffect(() => {
     const fetchShowcase = async () => {
@@ -22,7 +26,6 @@ const Showcase = () => {
         setLoading(true);
         const res = await api.get("/projects/showcase?limit=20");
         setProjects(res.data.projects || []);
-        setTotalCount(res.data.total || 0);
       } catch (err) {
         console.error("Failed to load showcase:", err);
       } finally {
@@ -33,86 +36,85 @@ const Showcase = () => {
   }, []);
 
   return (
-    <div className="page-container space-y-10">
+    <Container className="space-y-8 py-8">
       {/* Header */}
-      <div className="section-header max-w-3xl">
-        <span className="badge badge-success mb-2">Verified Social Solutions</span>
-        <h1 className="section-title">Completed Projects Showcase</h1>
-        <p className="section-subtitle">
-          Explore production software solutions built by SolveX developer teams to address real-world community and NGO challenges.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="VERIFIED SOCIAL SOLUTIONS"
+        title="Completed Projects Showcase"
+        description="Explore production software solutions built by SolveX developer teams to address real-world community and NGO challenges."
+      />
 
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="glass-card p-6 space-y-4 animate-pulse">
-              <div className="skeleton-title" />
-              <div className="skeleton-text" />
-              <div className="skeleton-text" />
-            </div>
+            <Card key={i} className="p-6 space-y-4 animate-pulse">
+              <div className="h-5 bg-graphite rounded-inputs w-2/3" />
+              <div className="h-3 bg-graphite rounded-inputs w-full" />
+              <div className="h-3 bg-graphite rounded-inputs w-4/5" />
+            </Card>
           ))}
         </div>
       ) : projects.length === 0 ? (
-        <div className="empty-state glass-card">
-          <FiLayers className="empty-state-icon" />
-          <h3 className="text-lg font-bold text-white mb-1">Showcase Empty</h3>
-          <p className="empty-state-text text-sm">
+        <Card className="p-12 text-center text-smoke space-y-3">
+          <FiLayers className="w-8 h-8 text-iron mx-auto" />
+          <h3 className="text-base font-bold text-white">Showcase Empty</h3>
+          <p className="text-xs text-smoke">
             Completed projects with verified provider sign-offs will appear here.
           </p>
-        </div>
+        </Card>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {projects.map((p) => (
-            <div
+            <Card
               key={p._id}
-              className="glass-card-hover p-8 flex flex-col justify-between space-y-6"
+              hoverable
+              className="p-7 flex flex-col justify-between space-y-6"
             >
               {/* Top Meta & Title */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <span className="badge badge-success text-xs py-1 px-3 flex items-center gap-1">
-                    <FiCheckCircle className="w-3.5 h-3.5" />
+                  <Badge variant="success" size="sm">
+                    <FiCheckCircle className="w-3.5 h-3.5 mr-1" />
                     Verified Completion
-                  </span>
-                  <span className="text-xs text-gray-400 font-medium">{p.category}</span>
+                  </Badge>
+                  <span className="text-xs text-smoke font-mono font-medium">{p.category}</span>
                 </div>
 
-                <h3 className="text-xl font-bold font-display text-white hover:text-primary-400 transition">
+                <h3 className="text-xl font-bold text-white hover:text-lime transition-colors">
                   <Link to={`/projects/${p._id}`}>{p.title}</Link>
                 </h3>
 
-                <p className="text-xs sm:text-sm text-gray-300 leading-relaxed">
+                <p className="text-xs sm:text-sm text-smoke leading-relaxed">
                   {p.solution?.completionSummary || p.description}
                 </p>
 
                 {/* Impact Highlights Box */}
                 {(p.impact?.peopleBenefited > 0 || p.impact?.organizationsHelped > 0 || p.impact?.notes) && (
-                  <div className="bg-dark-900/80 border border-emerald-500/20 rounded-xl p-4 space-y-2">
-                    <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400 uppercase tracking-wider">
+                  <div className="bg-void/60 border border-iron/80 rounded-inputs p-4 space-y-2">
+                    <div className="flex items-center gap-2 text-xs font-mono font-semibold text-lime uppercase tracking-wider">
                       <FiHeart className="w-3.5 h-3.5" />
                       Reported Social Impact
                     </div>
-                    <div className="grid grid-cols-2 gap-4 pt-1">
+                    <div className="grid grid-cols-2 gap-4 pt-1 font-mono">
                       {p.impact?.peopleBenefited > 0 && (
                         <div>
-                          <div className="text-lg font-bold text-white font-display">
+                          <div className="text-xl font-bold text-white">
                             {p.impact.peopleBenefited.toLocaleString()}+
                           </div>
-                          <div className="text-[11px] text-gray-400">People Benefited</div>
+                          <div className="text-[11px] text-smoke">People Benefited</div>
                         </div>
                       )}
                       {p.impact?.organizationsHelped > 0 && (
                         <div>
-                          <div className="text-lg font-bold text-white font-display">
+                          <div className="text-xl font-bold text-white">
                             {p.impact.organizationsHelped}
                           </div>
-                          <div className="text-[11px] text-gray-400">Organizations Helped</div>
+                          <div className="text-[11px] text-smoke">Organizations Helped</div>
                         </div>
                       )}
                     </div>
                     {p.impact?.notes && (
-                      <p className="text-xs text-gray-400 pt-1 italic">
+                      <p className="text-xs text-smoke pt-1 italic">
                         "{p.impact.notes}"
                       </p>
                     )}
@@ -123,61 +125,62 @@ const Showcase = () => {
                 {p.requiredSkills && p.requiredSkills.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {p.requiredSkills.map((sk, idx) => (
-                      <span key={idx} className="badge badge-neutral text-xs py-0.5 px-2">
+                      <Badge key={idx} variant="neutral" size="sm" pill={false}>
                         {sk}
-                      </span>
+                      </Badge>
                     ))}
                   </div>
                 )}
               </div>
 
               {/* Bottom Credits & External Links */}
-              <div className="pt-6 border-t border-dark-700/60 space-y-4">
-                <div className="flex items-center justify-between text-xs text-gray-400">
+              <div className="pt-4 border-t border-iron/60 space-y-4">
+                <div className="flex items-center justify-between text-xs text-smoke">
                   <span>
-                    Provider: <strong className="text-gray-200">{p.problemProvider?.name || "NGO"}</strong>
+                    Provider: <strong className="text-bone">{p.problemProvider?.name || "NGO"}</strong>
                   </span>
                   <span>
-                    Leader: <strong className="text-primary-400">{p.projectLeader?.name || "Developer"}</strong>
+                    Leader: <strong className="text-lime">{p.projectLeader?.name || "Developer"}</strong>
                   </span>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-3 pt-1">
+                <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
                   {p.solution?.liveUrl && (
-                    <a
+                    <Button
                       href={p.solution.liveUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="btn-primary btn-sm flex-1 flex items-center justify-center gap-2"
+                      variant="primary"
+                      size="sm"
+                      className="flex-1"
+                      icon={FiExternalLink}
                     >
-                      <FiExternalLink className="w-4 h-4" />
-                      <span>Live Deployed App</span>
-                    </a>
+                      Live Deployed App
+                    </Button>
                   )}
                   {p.githubRepoUrl && (
-                    <a
+                    <Button
                       href={p.githubRepoUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="btn-secondary btn-sm flex-1 flex items-center justify-center gap-2"
+                      variant="secondary"
+                      size="sm"
+                      className="flex-1"
+                      icon={FiGithub}
                     >
-                      <FiGithub className="w-4 h-4" />
-                      <span>GitHub Repo</span>
-                    </a>
+                      View GitHub
+                    </Button>
                   )}
-                  <Link
+                  <Button
                     to={`/projects/${p._id}`}
-                    className="btn-secondary btn-sm flex items-center justify-center px-4"
+                    variant="outline"
+                    size="sm"
                   >
                     Details
-                  </Link>
+                  </Button>
                 </div>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}
-    </div>
+    </Container>
   );
 };
 

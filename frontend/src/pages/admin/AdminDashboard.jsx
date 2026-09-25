@@ -6,11 +6,24 @@ import {
   FiShield,
   FiTrash2,
   FiSlash,
-  FiCheckCircle,
   FiSearch,
   FiRefreshCw,
 } from "react-icons/fi";
 import api from "../../services/api";
+import {
+  Container,
+  PageHeader,
+  Card,
+  Button,
+  Badge,
+  Input,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "../../components/ui";
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState(null);
@@ -79,110 +92,96 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="page-container space-y-8">
+    <Container className="space-y-8 py-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <span className="badge badge-warning mb-1 flex items-center gap-1 w-fit">
-            <FiShield className="w-3 h-3" /> System Administration
-          </span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-white">
-            Admin Console
-          </h1>
-          <p className="text-xs sm:text-sm text-gray-400">
-            Monitor platform usage metrics, manage user accounts, and oversee projects.
-          </p>
-        </div>
-        <button onClick={fetchData} className="btn-secondary btn-sm flex items-center gap-1.5">
-          <FiRefreshCw className="w-3.5 h-3.5" />
-          <span>Refresh</span>
-        </button>
-      </div>
+      <PageHeader
+        eyebrow="SYSTEM ADMINISTRATION"
+        title="Admin Console"
+        description="Monitor system-wide platform metrics, audit developer and provider accounts, and moderate community projects."
+        actions={
+          <Button onClick={fetchData} variant="secondary" size="sm" icon={FiRefreshCw} loading={loading}>
+            Refresh
+          </Button>
+        }
+      />
 
       {actionSuccess && (
-        <div className="p-3.5 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs rounded-xl flex items-center justify-between">
+        <div className="p-3.5 bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs rounded-inputs flex items-center justify-between">
           <span>{actionSuccess}</span>
-          <button onClick={() => setActionSuccess("")}>✕</button>
+          <button onClick={() => setActionSuccess("")} className="text-smoke hover:text-white">✕</button>
         </div>
       )}
 
       {actionError && (
-        <div className="p-3.5 bg-red-500/20 border border-red-500/40 text-red-300 text-xs rounded-xl flex items-center justify-between">
+        <div className="p-3.5 bg-red-950/60 border border-red-500/40 text-red-300 text-xs rounded-inputs flex items-center justify-between">
           <span>{actionError}</span>
-          <button onClick={() => setActionError("")}>✕</button>
+          <button onClick={() => setActionError("")} className="text-smoke hover:text-white">✕</button>
         </div>
       )}
 
       {/* Platform Stats Grid */}
       {stats && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-          <div className="glass-card p-4 text-center">
-            <div className="text-2xl font-bold text-white font-display">{stats.totalUsers}</div>
-            <div className="text-[11px] text-gray-400">Total Users</div>
-          </div>
-          <div className="glass-card p-4 text-center">
-            <div className="text-2xl font-bold text-primary-400 font-display">
-              {stats.totalDevelopers}
-            </div>
-            <div className="text-[11px] text-gray-400">Developers</div>
-          </div>
-          <div className="glass-card p-4 text-center">
-            <div className="text-2xl font-bold text-accent-400 font-display">
-              {stats.totalProviders}
-            </div>
-            <div className="text-[11px] text-gray-400">Providers</div>
-          </div>
-          <div className="glass-card p-4 text-center">
-            <div className="text-2xl font-bold text-white font-display">
-              {stats.totalProjects}
-            </div>
-            <div className="text-[11px] text-gray-400">Total Projects</div>
-          </div>
-          <div className="glass-card p-4 text-center">
-            <div className="text-2xl font-bold text-emerald-400 font-display">
-              {stats.completedProjects}
-            </div>
-            <div className="text-[11px] text-gray-400">Completed</div>
-          </div>
-          <div className="glass-card p-4 text-center">
-            <div className="text-2xl font-bold text-amber-400 font-display">
-              {stats.openProjects}
-            </div>
-            <div className="text-[11px] text-gray-400">Open Challenges</div>
-          </div>
+          <Card className="p-4 text-center">
+            <div className="text-2xl font-bold text-white font-mono">{stats.totalUsers}</div>
+            <div className="text-[11px] text-smoke uppercase tracking-wider font-mono mt-1">Total Users</div>
+          </Card>
+          <Card className="p-4 text-center">
+            <div className="text-2xl font-bold text-lime font-mono">{stats.totalDevelopers}</div>
+            <div className="text-[11px] text-smoke uppercase tracking-wider font-mono mt-1">Developers</div>
+          </Card>
+          <Card className="p-4 text-center">
+            <div className="text-2xl font-bold text-white font-mono">{stats.totalProviders}</div>
+            <div className="text-[11px] text-smoke uppercase tracking-wider font-mono mt-1">Providers</div>
+          </Card>
+          <Card className="p-4 text-center">
+            <div className="text-2xl font-bold text-white font-mono">{stats.totalProjects}</div>
+            <div className="text-[11px] text-smoke uppercase tracking-wider font-mono mt-1">Total Projects</div>
+          </Card>
+          <Card className="p-4 text-center">
+            <div className="text-2xl font-bold text-emerald-400 font-mono">{stats.completedProjects}</div>
+            <div className="text-[11px] text-smoke uppercase tracking-wider font-mono mt-1">Completed</div>
+          </Card>
+          <Card className="p-4 text-center">
+            <div className="text-2xl font-bold text-amber-400 font-mono">{stats.openProjects}</div>
+            <div className="text-[11px] text-smoke uppercase tracking-wider font-mono mt-1">Open Challenges</div>
+          </Card>
         </div>
       )}
 
       {/* Management Tables */}
-      <div className="glass-card p-6 sm:p-8 space-y-6">
-        {/* Sub-tabs */}
-        <div className="flex items-center justify-between pb-4 border-b border-dark-700/60 flex-wrap gap-4">
-          <div className="tab-list">
+      <Card className="p-6 sm:p-8 space-y-6">
+        {/* Sub-tabs & Search */}
+        <div className="flex items-center justify-between pb-4 border-b border-iron/60 flex-wrap gap-4">
+          <div className="flex gap-1.5 p-1 bg-void border border-iron rounded-inputs">
             <button
               onClick={() => setActiveTab("users")}
-              className={activeTab === "users" ? "tab-item-active" : "tab-item"}
+              className={`px-3 py-1.5 rounded-inputs text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                activeTab === "users"
+                  ? "bg-carbon text-white border border-iron"
+                  : "text-smoke hover:text-white"
+              }`}
             >
-              <div className="flex items-center gap-1.5">
-                <FiUsers className="w-4 h-4" />
-                <span>Users ({users.length})</span>
-              </div>
+              <FiUsers className="w-3.5 h-3.5 text-lime" />
+              <span>Users ({users.length})</span>
             </button>
             <button
               onClick={() => setActiveTab("projects")}
-              className={activeTab === "projects" ? "tab-item-active" : "tab-item"}
+              className={`px-3 py-1.5 rounded-inputs text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                activeTab === "projects"
+                  ? "bg-carbon text-white border border-iron"
+                  : "text-smoke hover:text-white"
+              }`}
             >
-              <div className="flex items-center gap-1.5">
-                <FiFolder className="w-4 h-4" />
-                <span>Projects ({projects.length})</span>
-              </div>
+              <FiFolder className="w-3.5 h-3.5 text-lime" />
+              <span>Projects ({projects.length})</span>
             </button>
           </div>
 
           {/* Search Input */}
-          <div className="relative w-64">
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
-            <input
-              type="text"
+          <div className="w-64">
+            <Input
+              icon={FiSearch}
               placeholder={activeTab === "users" ? "Search users..." : "Search projects..."}
               value={activeTab === "users" ? userSearch : projectSearch}
               onChange={(e) =>
@@ -190,101 +189,101 @@ const AdminDashboard = () => {
                   ? setUserSearch(e.target.value)
                   : setProjectSearch(e.target.value)
               }
-              className="input-field pl-9 py-1.5 text-xs"
+              className="py-1.5 text-xs"
             />
           </div>
         </div>
 
         {/* Users Table */}
         {activeTab === "users" && (
-          <div className="table-container">
-            <table className="w-full text-left">
-              <thead className="table-header">
-                <tr>
-                  <th className="table-cell">User</th>
-                  <th className="table-cell">Role</th>
-                  <th className="table-cell">Email</th>
-                  <th className="table-cell">Reputation</th>
-                  <th className="table-cell text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => (
-                  <tr key={u._id} className="table-row">
-                    <td className="table-cell font-medium text-white">{u.name}</td>
-                    <td className="table-cell">
-                      <span className="badge badge-primary text-[10px]">{u.role}</span>
-                    </td>
-                    <td className="table-cell text-gray-400">{u.email}</td>
-                    <td className="table-cell text-accent-400 font-bold">{u.reputation || 0}</td>
-                    <td className="table-cell text-right">
-                      {u.role !== "ADMIN" && (
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => handleSuspendUser(u._id)}
-                            className="p-1.5 text-gray-400 hover:text-amber-400 hover:bg-dark-800 rounded-lg transition"
-                            title="Suspend user"
-                          >
-                            <FiSlash className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteUser(u._id)}
-                            className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-dark-800 rounded-lg transition"
-                            title="Delete user"
-                          >
-                            <FiTrash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table>
+            <TableHeader>
+              <tr>
+                <TableHead>User</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Reputation</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </tr>
+            </TableHeader>
+            <TableBody>
+              {users.map((u) => (
+                <TableRow key={u._id}>
+                  <TableCell className="font-semibold text-white">{u.name}</TableCell>
+                  <TableCell>
+                    <Badge variant={u.role === "DEVELOPER" ? "lime" : "neutral"} size="sm">
+                      {u.role}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="font-mono text-smoke text-xs">{u.email}</TableCell>
+                  <TableCell className="font-mono font-bold text-lime">{u.reputation || 0} pts</TableCell>
+                  <TableCell className="text-right">
+                    {u.role !== "ADMIN" && (
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => handleSuspendUser(u._id)}
+                          className="p-1.5 text-smoke hover:text-amber-400 hover:bg-graphite rounded-inputs transition-colors"
+                          title="Suspend user"
+                        >
+                          <FiSlash className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(u._id)}
+                          className="p-1.5 text-smoke hover:text-red-400 hover:bg-graphite rounded-inputs transition-colors"
+                          title="Delete user"
+                        >
+                          <FiTrash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
 
         {/* Projects Table */}
         {activeTab === "projects" && (
-          <div className="table-container">
-            <table className="w-full text-left">
-              <thead className="table-header">
-                <tr>
-                  <th className="table-cell">Title</th>
-                  <th className="table-cell">Provider</th>
-                  <th className="table-cell">Status</th>
-                  <th className="table-cell text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {projects.map((p) => (
-                  <tr key={p._id} className="table-row">
-                    <td className="table-cell font-medium text-white">
-                      <Link to={`/projects/${p._id}`} className="hover:text-primary-400">
-                        {p.title}
-                      </Link>
-                    </td>
-                    <td className="table-cell text-gray-400">{p.problemProvider?.name}</td>
-                    <td className="table-cell">
-                      <span className="badge badge-neutral text-[10px]">{p.status}</span>
-                    </td>
-                    <td className="table-cell text-right">
-                      <button
-                        onClick={() => handleRemoveProject(p._id)}
-                        className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-dark-800 rounded-lg transition"
-                        title="Delete project"
-                      >
-                        <FiTrash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table>
+            <TableHeader>
+              <tr>
+                <TableHead>Title</TableHead>
+                <TableHead>Provider</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </tr>
+            </TableHeader>
+            <TableBody>
+              {projects.map((p) => (
+                <TableRow key={p._id}>
+                  <TableCell className="font-semibold text-white">
+                    <Link to={`/projects/${p._id}`} className="hover:text-lime transition-colors">
+                      {p.title}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="text-smoke">{p.problemProvider?.name}</TableCell>
+                  <TableCell>
+                    <Badge variant="neutral" size="sm">
+                      {p.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <button
+                      onClick={() => handleRemoveProject(p._id)}
+                      className="p-1.5 text-smoke hover:text-red-400 hover:bg-graphite rounded-inputs transition-colors"
+                      title="Delete project"
+                    >
+                      <FiTrash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
-      </div>
-    </div>
+      </Card>
+    </Container>
   );
 };
 

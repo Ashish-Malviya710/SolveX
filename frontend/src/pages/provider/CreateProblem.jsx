@@ -2,11 +2,6 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FiCpu,
-  FiPlusCircle,
-  FiDollarSign,
-  FiCalendar,
-  FiUsers,
-  FiClock,
   FiCheckCircle,
   FiAlertCircle,
   FiArrowRight,
@@ -20,6 +15,7 @@ import {
   FiZap,
   FiShield,
   FiTarget,
+  FiUsers,
 } from "react-icons/fi";
 import api from "../../services/api";
 import {
@@ -30,6 +26,20 @@ import {
   regenerateBlueprint,
   completeDiscovery,
 } from "../../services/discoveryApi";
+import {
+  Container,
+  PageHeader,
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  Button,
+  Badge,
+  Input,
+  Select,
+  Textarea,
+  Modal,
+} from "../../components/ui";
 
 const STAGES = {
   IDEA: "IDEA",
@@ -161,15 +171,13 @@ const CreateProblem = () => {
       }
     }
 
-    // Optimistic UI: immediately clear inputs and show answer in conversation
     setUserAnswer("");
     setSelectedOptions([]);
     setCustomOptionText("");
-    setCurrentQuestion(null); // Hide current question immediately
+    setCurrentQuestion(null);
     setLoading(true);
     setLoadingAction("Generating next question...");
 
-    // Optimistically add user's answer to conversation for instant feedback
     setConversation((prev) => [
       ...prev,
       {
@@ -189,13 +197,11 @@ const CreateProblem = () => {
       setAiSummary(session.aiSummary || "");
 
       if (isReady || !session.currentQuestion) {
-        // Automatically trigger blueprint generation if ready
         await handleGenerateBlueprint(discoveryId);
       }
     } catch (err) {
       console.error("Answer submission error:", err);
       setError(err.response?.data?.message || "Failed to submit answer. Please retry.");
-      // Restore the question on error so user can retry
       setCurrentQuestion(currentQuestion);
     } finally {
       setLoading(false);
@@ -216,7 +222,7 @@ const CreateProblem = () => {
       setEditedOverview(bp.overview || "");
       setEditedSkills((bp.requiredSkills || []).join(", "));
       setStage(STAGES.BLUEPRINT);
-      setSuccessMsg("✨ AI has generated your complete project technical blueprint!");
+      setSuccessMsg("AI has generated your complete project technical blueprint!");
     } catch (err) {
       console.error("Generate blueprint error:", err);
       setError(err.response?.data?.message || "Failed to generate blueprint. Please try again.");
@@ -238,7 +244,7 @@ const CreateProblem = () => {
       setEditedTitle(bp.title || initialIdea);
       setEditedOverview(bp.overview || "");
       setEditedSkills((bp.requiredSkills || []).join(", "));
-      setSuccessMsg("✨ Blueprint successfully regenerated!");
+      setSuccessMsg("Blueprint successfully regenerated!");
     } catch (err) {
       console.error("Regenerate error:", err);
       setError(err.response?.data?.message || "Failed to regenerate blueprint.");
@@ -263,7 +269,7 @@ const CreateProblem = () => {
       setEditedSkills((bp.requiredSkills || []).join(", "));
       setShowRevisionModal(false);
       setRevisionPrompt("");
-      setSuccessMsg("✨ Blueprint revised successfully based on your feedback!");
+      setSuccessMsg("Blueprint revised successfully based on your feedback!");
     } catch (err) {
       console.error("Revision error:", err);
       setError(err.response?.data?.message || "Failed to revise blueprint.");
@@ -346,16 +352,11 @@ const CreateProblem = () => {
         expectedDuration: classicDuration,
         deadline: classicDeadline || undefined,
         maxTeamSize: Number(maxTeamSize) || 5,
+        status: "OPEN",
       };
 
       const res = await api.post("/projects", payload);
       const projectId = res.data.project?._id;
-
-      try {
-        await api.put(`/projects/${projectId}/publish`);
-      } catch (pubErr) {
-        // continue
-      }
 
       navigate(`/projects/${projectId}`);
     } catch (err) {
@@ -373,95 +374,80 @@ const CreateProblem = () => {
 
   if (mode === "discovery" && stage === STAGES.IDEA) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-12">
-        {/* Header */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary-950/70 border border-primary-500/30 text-primary-400 text-xs font-semibold uppercase tracking-wider mb-4">
-            <FiCpu className="w-4 h-4 animate-pulse text-primary-400" />
-            AI Project Discovery
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            Turn Your Problem Idea Into a Technical Blueprint
-          </h1>
-          <p className="mt-3 text-base text-gray-400 max-w-2xl mx-auto">
-            You don't need to fill a giant technical form. Just describe your problem or concept in plain words. Our AI Product Analyst will ask dynamic questions, extract requirements, and build an engineering specification for your developer team.
-          </p>
-        </div>
+      <Container className="py-12 max-w-4xl">
+        <PageHeader
+          eyebrow="AI Project Discovery"
+          title="Turn Your Problem Idea Into a Technical Blueprint"
+          description="Describe your problem or concept in plain words. Our AI Product Architect asks dynamic questions, extracts requirements, and builds an engineering specification for your developer team."
+        />
 
-        {/* Error / Alert */}
         {error && (
-          <div className="mb-6 p-4 rounded-xl bg-red-950/50 border border-red-500/30 text-red-300 flex items-center gap-3">
-            <FiAlertCircle className="w-5 h-5 flex-shrink-0 text-red-400" />
+          <div className="mb-6 p-4 rounded-button bg-red-950/30 border border-red-500/40 text-red-300 font-mono text-xs flex items-center gap-3">
+            <FiAlertCircle className="w-5 h-5 shrink-0 text-red-400" />
             <span>{error}</span>
           </div>
         )}
 
-        {/* Main Idea Input Card */}
-        <div className="bg-dark-900 border border-dark-800 rounded-2xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-primary-600/5 rounded-full blur-3xl pointer-events-none" />
+        <Card>
+          <CardContent className="p-6 sm:p-8 space-y-6">
+            <Textarea
+              label="Describe your problem challenge or software concept"
+              rows={5}
+              value={initialIdea}
+              onChange={(e) => setInitialIdea(e.target.value)}
+              placeholder="e.g. I want to build a platform where rural farmers can sell surplus crops directly to local schools and restaurants, track fair market prices, and coordinate shared transport..."
+            />
 
-          <label className="block text-sm font-medium text-gray-200 mb-2">
-            Describe your project, community challenge, or software idea
-          </label>
-          <textarea
-            rows={5}
-            value={initialIdea}
-            onChange={(e) => setInitialIdea(e.target.value)}
-            placeholder="e.g., I want to build a platform where rural farmers can sell surplus crops directly to local schools and restaurants, track fair market prices, and coordinate shared transport..."
-            className="w-full bg-dark-950/90 border border-dark-700 rounded-xl px-4 py-3.5 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-base resize-none transition-colors"
-          />
-
-          {/* Quick Idea Starters */}
-          <div className="mt-4">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              <FiZap className="w-3.5 h-3.5 text-primary-400" /> Or pick a sample concept:
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {IDEA_PROMPTS.map((promptText, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => setInitialIdea(promptText)}
-                  className="text-xs bg-dark-800 hover:bg-dark-700/80 text-gray-300 hover:text-white px-3 py-1.5 rounded-lg border border-dark-700 text-left transition-colors"
-                >
-                  "{promptText.substring(0, 48)}..."
-                </button>
-              ))}
+            <div>
+              <p className="text-xs font-mono uppercase tracking-wider text-smoke mb-3 flex items-center gap-1.5">
+                <FiZap className="w-3.5 h-3.5 text-lime" /> Or pick a sample concept:
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {IDEA_PROMPTS.map((promptText, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setInitialIdea(promptText)}
+                    className="p-3 bg-void border border-hairline hover:border-lime/50 rounded-button text-left text-xs font-mono text-bone hover:text-paper transition"
+                  >
+                    "{promptText.substring(0, 52)}..."
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Action Row */}
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-dark-800">
-            <button
-              type="button"
-              onClick={() => setMode("manual")}
-              className="text-xs text-gray-400 hover:text-primary-400 transition-colors"
-            >
-              Prefer manual entry? Switch to classic form →
-            </button>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-hairline">
+              <button
+                type="button"
+                onClick={() => setMode("manual")}
+                className="text-xs font-mono text-smoke hover:text-lime transition"
+              >
+                Prefer manual entry? Switch to classic form →
+              </button>
 
-            <button
-              type="button"
-              onClick={handleStartDiscovery}
-              disabled={loading || !initialIdea.trim()}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl font-semibold text-white bg-primary-600 hover:bg-primary-500 shadow-lg shadow-primary-600/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-            >
-              {loading ? (
-                <>
-                  <FiRefreshCw className="w-4 h-4 animate-spin" />
-                  {loadingAction || "Analyzing Idea..."}
-                </>
-              ) : (
-                <>
-                  <FiCompass className="w-4 h-4" />
-                  Start AI Discovery Session
-                  <FiArrowRight className="w-4 h-4" />
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
+              <Button
+                variant="primary"
+                size="md"
+                onClick={handleStartDiscovery}
+                disabled={loading || !initialIdea.trim()}
+              >
+                {loading ? (
+                  <>
+                    <FiRefreshCw className="w-4 h-4 animate-spin" />
+                    <span>{loadingAction || "Analyzing Idea..."}</span>
+                  </>
+                ) : (
+                  <>
+                    <FiCompass className="w-4 h-4" />
+                    <span>Start AI Discovery Session</span>
+                    <FiArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </Container>
     );
   }
 
@@ -471,314 +457,312 @@ const CreateProblem = () => {
 
   if (mode === "discovery" && stage === STAGES.DISCOVERY) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-8">
+      <Container className="py-8 max-w-3xl">
         {/* Readiness Header */}
-        <div className="bg-dark-900 border border-dark-800 rounded-2xl p-5 mb-6 shadow-lg">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-            <div>
-              <span className="text-xs font-semibold text-primary-400 uppercase tracking-wider">
-                Discovery In Progress
-              </span>
-              <h2 className="text-lg font-bold text-white truncate max-w-md">
-                "{initialIdea.substring(0, 60)}..."
-              </h2>
-            </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-gray-400">Readiness:</span>
-                <span className="text-sm font-bold text-primary-400">{readinessScore}%</span>
+        <Card className="mb-6">
+          <CardContent className="p-5 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <span className="text-xs font-mono uppercase tracking-wider text-lime block">
+                  Discovery In Progress
+                </span>
+                <h2 className="text-base font-semibold text-paper truncate max-w-md">
+                  "{initialIdea.substring(0, 60)}..."
+                </h2>
+              </div>
+              <div className="flex items-center gap-2 font-mono text-xs">
+                <span className="text-smoke">Readiness:</span>
+                <Badge variant="lime" size="sm">
+                  {readinessScore}%
+                </Badge>
               </div>
             </div>
-          </div>
 
-          {/* Progress bar */}
-          <div className="w-full h-2 bg-dark-950 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-primary-600 to-indigo-500 transition-all duration-500"
-              style={{ width: `${Math.min(readinessScore, 100)}%` }}
-            />
-          </div>
+            {/* Progress bar */}
+            <div className="w-full h-1.5 bg-void rounded-full overflow-hidden border border-hairline">
+              <div
+                className="h-full bg-lime transition-all duration-500"
+                style={{ width: `${Math.min(readinessScore, 100)}%` }}
+              />
+            </div>
 
-          <p className="text-xs text-gray-400 mt-2 italic flex items-center justify-between">
-            <span>{aiSummary || "AI is learning about your project requirements..."}</span>
-            {readinessScore >= 80 && (
-              <button
-                type="button"
-                onClick={() => handleGenerateBlueprint()}
-                disabled={loading}
-                className="text-xs text-primary-400 hover:text-primary-300 font-medium underline ml-2"
-              >
-                Generate Blueprint Now →
-              </button>
-            )}
-          </p>
-        </div>
+            <div className="text-xs font-mono text-smoke flex items-center justify-between pt-1">
+              <span>{aiSummary || "AI is synthesizing project requirements..."}</span>
+              {readinessScore >= 80 && (
+                <button
+                  type="button"
+                  onClick={() => handleGenerateBlueprint()}
+                  disabled={loading}
+                  className="text-lime hover:underline shrink-0 ml-2"
+                >
+                  Generate Blueprint Now →
+                </button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Error Alert */}
         {error && (
-          <div className="mb-6 p-4 rounded-xl bg-red-950/50 border border-red-500/30 text-red-300 flex items-center justify-between gap-3">
+          <div className="mb-6 p-4 rounded-button bg-red-950/30 border border-red-500/40 text-red-300 font-mono text-xs flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <FiAlertCircle className="w-5 h-5 flex-shrink-0 text-red-400" />
+              <FiAlertCircle className="w-5 h-5 shrink-0 text-red-400" />
               <span>{error}</span>
             </div>
-            <button
-              type="button"
+            <Button
+              variant="danger"
+              size="sm"
               onClick={() => handleAnswerSubmit()}
-              className="text-xs bg-red-800/80 hover:bg-red-700 text-white px-3 py-1 rounded-md"
             >
               Retry
-            </button>
+            </Button>
           </div>
         )}
 
         {/* Dynamic Question Card */}
         {currentQuestion ? (
-          <div className="bg-dark-900 border border-dark-800 rounded-2xl p-6 sm:p-8 shadow-xl">
-            <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-primary-600/20 border border-primary-500/30 flex items-center justify-center text-primary-400">
-                <FiCpu className="w-4 h-4" />
+          <Card>
+            <CardContent className="p-6 sm:p-8 space-y-6">
+              <div className="flex items-center gap-2">
+                <Badge variant="lime" size="sm">
+                  Question {conversation.filter((c) => c.type === "question").length}
+                </Badge>
               </div>
-              <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
-                Question {conversation.filter((c) => c.type === "question").length}
-              </span>
-            </div>
 
-            <h3 className="text-xl font-bold text-white leading-snug mb-3">
-              {currentQuestion.text}
-            </h3>
+              <div>
+                <h3 className="text-lg font-semibold text-paper leading-snug mb-2">
+                  {currentQuestion.text}
+                </h3>
+                {currentQuestion.reason && (
+                  <p className="text-xs font-mono text-smoke bg-void p-3 rounded-button border border-hairline">
+                    <span className="text-lime font-bold">Why this matters:</span> {currentQuestion.reason}
+                  </p>
+                )}
+              </div>
 
-            {currentQuestion.reason && (
-              <p className="text-xs text-gray-400 mb-6 bg-dark-950/70 p-3 rounded-lg border border-dark-800">
-                💡 <span className="font-semibold text-gray-300">Why this matters:</span> {currentQuestion.reason}
-              </p>
-            )}
-
-            {/* Render dynamic question input */}
-            <form onSubmit={handleAnswerSubmit}>
-              {/* SINGLE CHOICE */}
-              {currentQuestion.type === "single_choice" && (
-                <div className="space-y-2.5 mb-6">
-                  {(currentQuestion.options || []).map((opt, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => {
-                        setUserAnswer(opt);
-                        setCustomOptionText("");
-                      }}
-                      className={`w-full text-left p-3.5 rounded-xl border text-sm transition-all flex items-center justify-between ${
-                        userAnswer === opt && !customOptionText
-                          ? "bg-primary-950/70 border-primary-500/80 text-white shadow-md shadow-primary-950/50"
-                          : "bg-dark-950/60 border-dark-800 text-gray-300 hover:bg-dark-800/60 hover:text-white"
-                      }`}
-                    >
-                      <span>{opt}</span>
-                      {userAnswer === opt && !customOptionText && (
-                        <FiCheck className="w-4 h-4 text-primary-400" />
-                      )}
-                    </button>
-                  ))}
-                  {/* Or Custom input */}
-                  <div className="pt-2">
-                    <input
-                      type="text"
-                      placeholder="Or write custom answer..."
-                      value={customOptionText}
-                      onChange={(e) => {
-                        setCustomOptionText(e.target.value);
-                        setUserAnswer("");
-                      }}
-                      className="w-full bg-dark-950/80 border border-dark-800 rounded-xl px-4 py-3 text-gray-200 placeholder-gray-500 focus:outline-none focus:border-primary-500 text-sm"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* MULTIPLE CHOICE */}
-              {currentQuestion.type === "multiple_choice" && (
-                <div className="space-y-2.5 mb-6">
-                  {(currentQuestion.options || []).map((opt, i) => {
-                    const isSelected = selectedOptions.includes(opt);
-                    return (
+              <form onSubmit={handleAnswerSubmit} className="space-y-4">
+                {/* SINGLE CHOICE */}
+                {currentQuestion.type === "single_choice" && (
+                  <div className="space-y-2">
+                    {(currentQuestion.options || []).map((opt, i) => (
                       <button
                         key={i}
                         type="button"
                         onClick={() => {
-                          if (isSelected) {
-                            setSelectedOptions(selectedOptions.filter((o) => o !== opt));
-                          } else {
-                            setSelectedOptions([...selectedOptions, opt]);
-                          }
+                          setUserAnswer(opt);
+                          setCustomOptionText("");
                         }}
-                        className={`w-full text-left p-3.5 rounded-xl border text-sm transition-all flex items-center justify-between ${
-                          isSelected
-                            ? "bg-primary-950/70 border-primary-500/80 text-white shadow-md"
-                            : "bg-dark-950/60 border-dark-800 text-gray-300 hover:bg-dark-800/60 hover:text-white"
+                        className={`w-full text-left p-3.5 rounded-button border text-xs font-mono transition-all flex items-center justify-between ${
+                          userAnswer === opt && !customOptionText
+                            ? "bg-carbon border-lime text-lime"
+                            : "bg-void border-hairline text-bone hover:border-iron hover:text-paper"
                         }`}
                       >
                         <span>{opt}</span>
-                        <div
-                          className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${
+                        {userAnswer === opt && !customOptionText && (
+                          <FiCheck className="w-4 h-4 text-lime" />
+                        )}
+                      </button>
+                    ))}
+                    <div className="pt-2">
+                      <Input
+                        placeholder="Or type a custom answer..."
+                        value={customOptionText}
+                        onChange={(e) => {
+                          setCustomOptionText(e.target.value);
+                          setUserAnswer("");
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* MULTIPLE CHOICE */}
+                {currentQuestion.type === "multiple_choice" && (
+                  <div className="space-y-2">
+                    {(currentQuestion.options || []).map((opt, i) => {
+                      const isSelected = selectedOptions.includes(opt);
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedOptions(selectedOptions.filter((o) => o !== opt));
+                            } else {
+                              setSelectedOptions([...selectedOptions, opt]);
+                            }
+                          }}
+                          className={`w-full text-left p-3.5 rounded-button border text-xs font-mono transition-all flex items-center justify-between ${
                             isSelected
-                              ? "bg-primary-600 border-primary-500 text-white"
-                              : "border-dark-700 bg-dark-900"
+                              ? "bg-carbon border-lime text-lime"
+                              : "bg-void border-hairline text-bone hover:border-iron hover:text-paper"
                           }`}
                         >
-                          {isSelected && <FiCheck className="w-3.5 h-3.5" />}
-                        </div>
-                      </button>
-                    );
-                  })}
-                  <div className="pt-2">
-                    <input
-                      type="text"
-                      placeholder="Add another requirement / custom option..."
-                      value={customOptionText}
-                      onChange={(e) => setCustomOptionText(e.target.value)}
-                      className="w-full bg-dark-950/80 border border-dark-800 rounded-xl px-4 py-3 text-gray-200 placeholder-gray-500 focus:outline-none focus:border-primary-500 text-sm"
-                    />
+                          <span>{opt}</span>
+                          <div
+                            className={`w-4 h-4 rounded border flex items-center justify-center ${
+                              isSelected
+                                ? "bg-lime border-lime text-black"
+                                : "border-hairline bg-graphite"
+                            }`}
+                          >
+                            {isSelected && <FiCheck className="w-3 h-3 stroke-[3]" />}
+                          </div>
+                        </button>
+                      );
+                    })}
+                    <div className="pt-2">
+                      <Input
+                        placeholder="Add another requirement / custom option..."
+                        value={customOptionText}
+                        onChange={(e) => setCustomOptionText(e.target.value)}
+                      />
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* BOOLEAN */}
-              {currentQuestion.type === "boolean" && (
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  {["Yes", "No"].map((choice) => (
-                    <button
-                      key={choice}
-                      type="button"
-                      onClick={() => setUserAnswer(choice)}
-                      className={`p-4 rounded-xl border text-base font-semibold text-center transition-all ${
-                        userAnswer === choice
-                          ? "bg-primary-950/80 border-primary-500 text-white shadow-lg"
-                          : "bg-dark-950/60 border-dark-800 text-gray-300 hover:bg-dark-800/60 hover:text-white"
-                      }`}
-                    >
-                      {choice}
-                    </button>
-                  ))}
-                </div>
-              )}
+                {/* BOOLEAN */}
+                {currentQuestion.type === "boolean" && (
+                  <div className="grid grid-cols-2 gap-4">
+                    {["Yes", "No"].map((choice) => (
+                      <button
+                        key={choice}
+                        type="button"
+                        onClick={() => setUserAnswer(choice)}
+                        className={`p-4 rounded-button border text-xs font-mono font-semibold text-center transition-all ${
+                          userAnswer === choice
+                            ? "bg-carbon border-lime text-lime"
+                            : "bg-void border-hairline text-bone hover:border-iron hover:text-paper"
+                        }`}
+                      >
+                        {choice}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
-              {/* NUMBER */}
-              {currentQuestion.type === "number" && (
-                <div className="mb-6">
-                  <input
+                {/* NUMBER */}
+                {currentQuestion.type === "number" && (
+                  <Input
                     type="number"
                     value={userAnswer}
                     onChange={(e) => setUserAnswer(e.target.value)}
                     placeholder="Enter numeric value..."
-                    className="w-full bg-dark-950/80 border border-dark-800 rounded-xl px-4 py-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-primary-500 text-base"
                   />
-                </div>
-              )}
+                )}
 
-              {/* TEXT / TEXTAREA */}
-              {(currentQuestion.type === "text" || currentQuestion.type === "textarea") && (
-                <div className="mb-6">
-                  <textarea
+                {/* TEXT / TEXTAREA */}
+                {(currentQuestion.type === "text" || currentQuestion.type === "textarea") && (
+                  <Textarea
                     rows={4}
                     value={userAnswer}
                     onChange={(e) => setUserAnswer(e.target.value)}
                     placeholder="Enter your detailed response..."
-                    className="w-full bg-dark-950/80 border border-dark-800 rounded-xl px-4 py-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-primary-500 text-sm resize-none"
                   />
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex items-center justify-between pt-4 border-t border-hairline">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowHistory(!showHistory)}
+                  >
+                    <FiMessageSquare className="w-3.5 h-3.5" />
+                    <span>{showHistory ? "Hide History" : "View Answer History"}</span>
+                  </Button>
+
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    size="sm"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <>
+                        <FiRefreshCw className="w-4 h-4 animate-spin" />
+                        <span>{loadingAction || "Analyzing..."}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Continue</span>
+                        <FiArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </Button>
                 </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex items-center justify-between pt-4 border-t border-dark-800">
-                <button
-                  type="button"
-                  onClick={() => setShowHistory(!showHistory)}
-                  className="text-xs text-gray-400 hover:text-white flex items-center gap-1.5"
-                >
-                  <FiMessageSquare className="w-3.5 h-3.5" />
-                  {showHistory ? "Hide Interview History" : "View Answers History"}
-                </button>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-white bg-primary-600 hover:bg-primary-500 shadow-md shadow-primary-600/30 transition-all text-sm disabled:opacity-50"
-                >
-                  {loading ? (
-                    <>
-                      <FiRefreshCw className="w-4 h-4 animate-spin" />
-                      {loadingAction || "Analyzing..."}
-                    </>
-                  ) : (
-                    <>
-                      Continue
-                      <FiArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
+              </form>
+            </CardContent>
+          </Card>
         ) : loading ? (
-          /* Loading state — show spinner while waiting for next question (NOT the completion block) */
-          <div className="bg-dark-900 border border-dark-800 rounded-2xl p-8 text-center">
-            <FiRefreshCw className="w-10 h-10 text-primary-400 mx-auto mb-4 animate-spin" />
-            <h3 className="text-lg font-bold text-white mb-2">{loadingAction || "Generating next question..."}</h3>
-            <p className="text-sm text-gray-400">AI is analyzing your response and preparing the next question.</p>
-          </div>
-        ) : (
-          <div className="bg-dark-900 border border-dark-800 rounded-2xl p-8 text-center">
-            <FiCheckCircle className="w-12 h-12 text-green-400 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-white mb-2">Discovery Session Complete!</h3>
-            <p className="text-sm text-gray-400 max-w-md mx-auto mb-6">
-              All essential specifications have been captured. We are ready to generate your unique technical blueprint.
+          <Card className="text-center py-16 px-6">
+            <FiRefreshCw className="w-10 h-10 text-lime mx-auto mb-4 animate-spin" />
+            <h3 className="text-base font-semibold text-paper mb-1">
+              {loadingAction || "Generating next question..."}
+            </h3>
+            <p className="text-xs text-smoke font-mono">
+              AI Architect is synthesizing your answers and planning next requirements.
             </p>
-            <button
-              type="button"
+          </Card>
+        ) : (
+          <Card className="text-center py-16 px-6 space-y-4">
+            <FiCheckCircle className="w-12 h-12 text-lime mx-auto" />
+            <h3 className="text-base font-semibold text-paper">
+              Discovery Session Complete!
+            </h3>
+            <p className="text-xs text-smoke font-mono max-w-md mx-auto">
+              All essential specifications have been captured. We are ready to synthesize your technical blueprint.
+            </p>
+            <Button
+              variant="primary"
+              size="md"
               onClick={() => handleGenerateBlueprint()}
               disabled={loading}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-white bg-primary-600 hover:bg-primary-500 shadow-lg text-sm"
             >
               {loading ? (
                 <>
                   <FiRefreshCw className="w-4 h-4 animate-spin" />
-                  Synthesizing Blueprint...
+                  <span>Synthesizing Blueprint...</span>
                 </>
               ) : (
                 <>
                   <FiCpu className="w-4 h-4" />
-                  Generate Technical Blueprint Now
+                  <span>Generate Technical Blueprint Now</span>
                 </>
               )}
-            </button>
-          </div>
+            </Button>
+          </Card>
         )}
 
-        {/* Conversation History Drawer */}
+        {/* History Drawer */}
         {showHistory && (
-          <div className="mt-6 bg-dark-900/90 border border-dark-800 rounded-2xl p-5 space-y-4">
-            <h4 className="text-xs font-bold text-gray-300 uppercase tracking-wider">
-              Interview History
-            </h4>
-            <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
-              {conversation.map((msg, i) => (
-                <div
-                  key={i}
-                  className={`p-3 rounded-xl text-xs ${
-                    msg.role === "assistant"
-                      ? "bg-dark-950 border border-dark-800 text-gray-300"
-                      : "bg-primary-950/40 border border-primary-500/20 text-primary-200 ml-4"
-                  }`}
-                >
-                  <span className="font-semibold text-gray-400 block mb-1">
-                    {msg.role === "assistant" ? "🤖 AI Analyst" : "👤 Your Answer"}:
-                  </span>
-                  <p>{msg.content}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+          <Card className="mt-6">
+            <CardContent className="p-5 space-y-3">
+              <h4 className="text-xs font-mono uppercase tracking-wider text-smoke">
+                Interview Log
+              </h4>
+              <div className="space-y-2.5 max-h-80 overflow-y-auto pr-2 font-mono text-xs">
+                {conversation.map((msg, i) => (
+                  <div
+                    key={i}
+                    className={`p-3 rounded-button border ${
+                      msg.role === "assistant"
+                        ? "bg-void border-hairline text-bone"
+                        : "bg-carbon border-hairline text-lime ml-4"
+                    }`}
+                  >
+                    <span className="text-[10px] text-smoke block mb-1">
+                      {msg.role === "assistant" ? "🤖 AI Analyst" : "👤 Your Answer"}:
+                    </span>
+                    <p>{msg.content}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         )}
-      </div>
+      </Container>
     );
   }
 
@@ -788,478 +772,515 @@ const CreateProblem = () => {
 
   if (mode === "discovery" && stage === STAGES.BLUEPRINT && blueprint) {
     return (
-      <div className="max-w-5xl mx-auto px-4 py-8">
-        {/* Notification Toast */}
+      <Container className="py-8 max-w-5xl">
         {successMsg && (
-          <div className="mb-6 p-4 rounded-xl bg-green-950/50 border border-green-500/30 text-green-300 flex items-center justify-between">
+          <div className="mb-6 p-4 rounded-button bg-lime/10 border border-lime/30 text-lime font-mono text-xs flex items-center justify-between">
             <span>{successMsg}</span>
             <button
               type="button"
               onClick={() => setSuccessMsg("")}
-              className="text-xs text-green-400 underline ml-4"
+              className="text-smoke hover:text-paper"
             >
-              Dismiss
+              ✕
             </button>
           </div>
         )}
 
         {error && (
-          <div className="mb-6 p-4 rounded-xl bg-red-950/50 border border-red-500/30 text-red-300 flex items-center gap-3">
-            <FiAlertCircle className="w-5 h-5 flex-shrink-0 text-red-400" />
+          <div className="mb-6 p-4 rounded-button bg-red-950/30 border border-red-500/40 text-red-300 font-mono text-xs flex items-center gap-3">
+            <FiAlertCircle className="w-5 h-5 shrink-0 text-red-400" />
             <span>{error}</span>
           </div>
         )}
 
         {/* Blueprint Header */}
-        <div className="bg-dark-900 border border-dark-800 rounded-2xl p-6 sm:p-8 mb-6 shadow-xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-primary-600/5 rounded-full blur-3xl pointer-events-none" />
-
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-dark-800">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-950/60 border border-green-500/30 text-green-400 text-xs font-semibold uppercase tracking-wider mb-2">
-                <FiCheckCircle className="w-3.5 h-3.5" />
-                Technical Blueprint Generated
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
-                {blueprint.title || "Software Project Blueprint"}
-              </h1>
-              <p className="text-xs text-gray-400 mt-1">
-                Estimated Complexity:{" "}
-                <span className="text-primary-400 font-semibold">{blueprint.complexity || "Moderate"}</span>{" "}
-                • Architecture:{" "}
-                <span className="text-gray-300">{blueprint.architecture?.type || "Full-Stack Web"}</span>
-              </p>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setEditingBlueprint(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-dark-800 hover:bg-dark-700 text-xs text-gray-200 border border-dark-700"
-              >
-                <FiEdit3 className="w-3.5 h-3.5" />
-                Edit
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowRevisionModal(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary-950/60 hover:bg-primary-900/60 text-xs text-primary-300 border border-primary-500/30"
-              >
-                <FiZap className="w-3.5 h-3.5" />
-                Ask AI to Revise
-              </button>
-              <button
-                type="button"
-                onClick={handleRegenerateBlueprint}
-                disabled={loading}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-dark-800 hover:bg-dark-700 text-xs text-gray-300 border border-dark-700"
-              >
-                <FiRefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-                Regenerate
-              </button>
-            </div>
-          </div>
-
-          {/* Section: Overview & Problem Statement */}
-          <div className="mt-6 space-y-4">
-            <div>
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
-                Executive Overview
-              </h3>
-              <p className="text-sm text-gray-200 leading-relaxed whitespace-pre-line">
-                {blueprint.overview}
-              </p>
-            </div>
-
-            {blueprint.problemStatement && (
-              <div className="bg-dark-950/60 p-4 rounded-xl border border-dark-800">
-                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
-                  Problem Statement & Impacted Stakeholders
-                </h4>
-                <p className="text-sm text-gray-300 leading-relaxed">
-                  {blueprint.problemStatement}
+        <Card className="mb-6">
+          <CardContent className="p-6 sm:p-8 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-hairline">
+              <div>
+                <Badge variant="lime" size="sm" className="mb-2">
+                  Technical Blueprint Generated
+                </Badge>
+                <h1 className="text-xl sm:text-2xl font-bold text-paper">
+                  {blueprint.title || "Software Project Blueprint"}
+                </h1>
+                <p className="text-xs font-mono text-smoke mt-1">
+                  Complexity:{" "}
+                  <span className="text-lime">{blueprint.complexity || "Moderate"}</span>{" "}
+                  • Architecture:{" "}
+                  <span className="text-bone">{blueprint.architecture?.type || "Full-Stack Web"}</span>
                 </p>
               </div>
-            )}
-          </div>
-        </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setEditingBlueprint(true)}
+                >
+                  <FiEdit3 className="w-3.5 h-3.5" />
+                  <span>Edit</span>
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setShowRevisionModal(true)}
+                >
+                  <FiZap className="w-3.5 h-3.5 text-lime" />
+                  <span>Ask AI to Revise</span>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRegenerateBlueprint}
+                  disabled={loading}
+                >
+                  <FiRefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+                  <span>Regenerate</span>
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <span className="text-xs font-mono uppercase tracking-wider text-smoke block mb-1">
+                  Executive Overview
+                </span>
+                <p className="text-xs font-mono text-bone leading-relaxed whitespace-pre-line bg-void p-4 rounded-button border border-hairline">
+                  {blueprint.overview}
+                </p>
+              </div>
+
+              {blueprint.problemStatement && (
+                <div>
+                  <span className="text-xs font-mono uppercase tracking-wider text-smoke block mb-1">
+                    Problem Statement & Stakeholders
+                  </span>
+                  <p className="text-xs font-mono text-bone leading-relaxed bg-void p-4 rounded-button border border-hairline">
+                    {blueprint.problemStatement}
+                  </p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Blueprint Details Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          {/* Core Features */}
-          <div className="bg-dark-900 border border-dark-800 rounded-2xl p-6 shadow-md">
-            <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-              <FiTarget className="w-4 h-4 text-primary-400" />
-              Core Functional Deliverables
-            </h3>
-            <ul className="space-y-2.5">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FiTarget className="w-4 h-4 text-lime" />
+                <span>Core Functional Deliverables</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
               {(blueprint.features?.core || []).map((feat, i) => (
-                <li key={i} className="text-xs text-gray-300 flex items-start gap-2.5">
-                  <FiCheck className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+                <div key={i} className="text-xs font-mono text-bone flex items-start gap-2">
+                  <FiCheck className="w-4 h-4 text-lime shrink-0 mt-0.5" />
                   <span>{feat}</span>
-                </li>
+                </div>
               ))}
-            </ul>
-          </div>
+            </CardContent>
+          </Card>
 
-          {/* Tech Stack */}
-          <div className="bg-dark-900 border border-dark-800 rounded-2xl p-6 shadow-md">
-            <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-              <FiCode className="w-4 h-4 text-primary-400" />
-              Recommended Tech Stack & Architecture
-            </h3>
-            <div className="space-y-3 text-xs">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FiCode className="w-4 h-4 text-lime" />
+                <span>Recommended Tech Stack</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 font-mono text-xs">
               <div>
-                <span className="text-gray-400 block mb-1">Frontend:</span>
+                <span className="text-smoke block mb-1">Frontend:</span>
                 <div className="flex flex-wrap gap-1.5">
                   {(blueprint.technology?.frontend || []).map((t, i) => (
-                    <span key={i} className="px-2.5 py-1 bg-dark-950 border border-dark-700 text-primary-300 rounded-md">
+                    <Badge key={i} variant="neutral" size="sm">
                       {t}
-                    </span>
+                    </Badge>
                   ))}
                 </div>
               </div>
               <div>
-                <span className="text-gray-400 block mb-1">Backend & Database:</span>
+                <span className="text-smoke block mb-1">Backend & Database:</span>
                 <div className="flex flex-wrap gap-1.5">
                   {[
                     ...(blueprint.technology?.backend || []),
                     ...(blueprint.technology?.database || []),
                   ].map((t, i) => (
-                    <span key={i} className="px-2.5 py-1 bg-dark-950 border border-dark-700 text-indigo-300 rounded-md">
+                    <Badge key={i} variant="neutral" size="sm">
                       {t}
-                    </span>
+                    </Badge>
                   ))}
                 </div>
               </div>
-              {blueprint.technology?.realtime && blueprint.technology.realtime.length > 0 && (
-                <div>
-                  <span className="text-gray-400 block mb-1">Real-Time / Integrations:</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {blueprint.technology.realtime.map((t, i) => (
-                      <span key={i} className="px-2.5 py-1 bg-dark-950 border border-dark-700 text-amber-300 rounded-md">
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          {/* Required Developer Roles */}
-          <div className="bg-dark-900 border border-dark-800 rounded-2xl p-6 shadow-md">
-            <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-              <FiUsers className="w-4 h-4 text-primary-400" />
-              Required Developer Roles & Extracted Skills
-            </h3>
-            <div className="space-y-3">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FiUsers className="w-4 h-4 text-lime" />
+                <span>Required Developer Roles</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 font-mono text-xs">
               {(blueprint.developerRoles || []).map((role, i) => (
-                <div key={i} className="bg-dark-950/60 p-3 rounded-xl border border-dark-800 text-xs">
-                  <span className="font-semibold text-gray-200 block mb-1">{role.role}</span>
-                  <div className="flex flex-wrap gap-1 mb-1.5">
+                <div key={i} className="p-3 bg-void border border-hairline rounded-button">
+                  <span className="font-semibold text-paper block mb-1">{role.role}</span>
+                  <div className="flex flex-wrap gap-1">
                     {(role.skills || []).map((s, si) => (
-                      <span key={si} className="px-2 py-0.5 bg-dark-800 text-gray-300 rounded text-[11px]">
+                      <Badge key={si} variant="neutral" size="sm">
                         {s}
-                      </span>
+                      </Badge>
                     ))}
                   </div>
                 </div>
               ))}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          {/* Milestones */}
-          <div className="bg-dark-900 border border-dark-800 rounded-2xl p-6 shadow-md">
-            <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-              <FiLayers className="w-4 h-4 text-primary-400" />
-              Recommended Development Milestones
-            </h3>
-            <div className="space-y-3">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FiLayers className="w-4 h-4 text-lime" />
+                <span>Development Milestones</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 font-mono text-xs">
               {(blueprint.milestones || []).map((m, i) => (
-                <div key={i} className="bg-dark-950/60 p-3 rounded-xl border border-dark-800 text-xs">
+                <div key={i} className="p-3 bg-void border border-hairline rounded-button">
                   <div className="flex justify-between items-center mb-1">
-                    <span className="font-semibold text-gray-200">{m.title}</span>
-                    <span className="text-[11px] text-primary-400">{m.duration}</span>
+                    <span className="font-semibold text-paper">{m.title}</span>
+                    <span className="text-[11px] text-lime">{m.duration}</span>
                   </div>
-                  <ul className="text-gray-400 list-disc list-inside space-y-0.5">
+                  <ul className="text-smoke list-disc list-inside space-y-0.5">
                     {(m.deliverables || []).map((d, di) => (
                       <li key={di}>{d}</li>
                     ))}
                   </ul>
                 </div>
               ))}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Optional Project Settings Form Before Final Launch */}
-        <div className="bg-dark-900 border border-dark-800 rounded-2xl p-6 shadow-lg mb-8">
-          <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-            <FiShield className="w-4 h-4 text-primary-400" />
-            Project Settings & Resource Allocation
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-            <div>
-              <label className="block text-gray-400 mb-1">Budget Model</label>
-              <select
+        {/* Project Settings Form */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FiShield className="w-4 h-4 text-lime" />
+              <span>Project Settings & Allocation</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <Select
+                label="Budget Model"
                 value={budgetType}
                 onChange={(e) => setBudgetType(e.target.value)}
-                className="w-full bg-dark-950 border border-dark-800 rounded-lg p-2.5 text-gray-200 focus:outline-none focus:border-primary-500"
               >
                 <option value="Volunteer">Volunteer / Civic</option>
                 <option value="Fixed">Fixed Grant / Stipend</option>
                 <option value="Negotiable">Negotiable</option>
-              </select>
-            </div>
-            {budgetType !== "Volunteer" && (
-              <div>
-                <label className="block text-gray-400 mb-1">Amount ({currency})</label>
-                <input
+              </Select>
+
+              {budgetType !== "Volunteer" && (
+                <Input
+                  label={`Amount (${currency})`}
                   type="number"
                   value={budgetAmount}
                   onChange={(e) => setBudgetAmount(e.target.value)}
                   placeholder="e.g. 50000"
-                  className="w-full bg-dark-950 border border-dark-800 rounded-lg p-2.5 text-gray-200 focus:outline-none focus:border-primary-500"
                 />
-              </div>
-            )}
-            <div>
-              <label className="block text-gray-400 mb-1">Max Team Size</label>
-              <input
+              )}
+
+              <Input
+                label="Max Team Size"
                 type="number"
                 value={maxTeamSize}
                 onChange={(e) => setMaxTeamSize(e.target.value)}
-                className="w-full bg-dark-950 border border-dark-800 rounded-lg p-2.5 text-gray-200 focus:outline-none focus:border-primary-500"
               />
-            </div>
-            <div>
-              <label className="block text-gray-400 mb-1">Expected Timeline</label>
-              <input
+
+              <Input
+                label="Expected Timeline"
                 type="text"
                 value={expectedDuration}
                 onChange={(e) => setExpectedDuration(e.target.value)}
-                className="w-full bg-dark-950 border border-dark-800 rounded-lg p-2.5 text-gray-200 focus:outline-none focus:border-primary-500"
               />
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        {/* Confirmation Action Bar */}
-        <div className="bg-gradient-to-r from-primary-950/80 to-dark-900 border border-primary-500/30 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
-          <div>
-            <h4 className="text-base font-bold text-white">Ready to connect with vetted developers?</h4>
-            <p className="text-xs text-gray-300 mt-0.5">
-              Confirming will create your SolveX Project with these blueprint specifications and initiate developer matching.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleConfirmAndCreate}
-            disabled={loading}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-xl font-bold text-white bg-primary-600 hover:bg-primary-500 shadow-xl shadow-primary-600/40 text-sm transition-all disabled:opacity-50"
-          >
-            {loading ? (
-              <>
-                <FiRefreshCw className="w-4 h-4 animate-spin" />
-                {loadingAction || "Creating Project..."}
-              </>
-            ) : (
-              <>
-                <FiCheckCircle className="w-4 h-4" />
-                Confirm & Launch Project
-              </>
-            )}
-          </button>
-        </div>
+        {/* Confirmation Bar */}
+        <Card className="border-lime/30 bg-carbon">
+          <CardContent className="p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <h4 className="text-base font-semibold text-paper">
+                Ready to launch and match with engineers?
+              </h4>
+              <p className="text-xs font-mono text-smoke mt-0.5">
+                Confirming publishes your problem with these blueprint specifications and opens developer applications.
+              </p>
+            </div>
+            <Button
+              variant="primary"
+              size="md"
+              onClick={handleConfirmAndCreate}
+              disabled={loading}
+              className="shrink-0"
+            >
+              {loading ? (
+                <>
+                  <FiRefreshCw className="w-4 h-4 animate-spin" />
+                  <span>{loadingAction || "Creating Project..."}</span>
+                </>
+              ) : (
+                <>
+                  <FiCheckCircle className="w-4 h-4" />
+                  <span>Confirm & Launch Project</span>
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
 
-        {/* Edit Blueprint Modal */}
-        {editingBlueprint && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <div className="bg-dark-900 border border-dark-800 rounded-2xl max-w-2xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-              <h3 className="text-lg font-bold text-white">Edit Blueprint Content</h3>
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1">Project Title</label>
-                <input
-                  type="text"
-                  value={editedTitle}
-                  onChange={(e) => setEditedTitle(e.target.value)}
-                  className="w-full bg-dark-950 border border-dark-800 rounded-lg p-2.5 text-sm text-gray-200"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1">Executive Overview</label>
-                <textarea
-                  rows={5}
-                  value={editedOverview}
-                  onChange={(e) => setEditedOverview(e.target.value)}
-                  className="w-full bg-dark-950 border border-dark-800 rounded-lg p-2.5 text-sm text-gray-200"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1">
-                  Required Developer Skills (comma-separated)
-                </label>
-                <input
-                  type="text"
-                  value={editedSkills}
-                  onChange={(e) => setEditedSkills(e.target.value)}
-                  className="w-full bg-dark-950 border border-dark-800 rounded-lg p-2.5 text-sm text-gray-200"
-                />
-              </div>
-              <div className="flex justify-end gap-3 pt-4 border-t border-dark-800">
-                <button
-                  type="button"
-                  onClick={() => setEditingBlueprint(false)}
-                  className="px-4 py-2 rounded-lg bg-dark-800 text-gray-300 text-xs"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSaveManualEdit}
-                  className="px-5 py-2 rounded-lg bg-primary-600 hover:bg-primary-500 text-white text-xs font-semibold"
-                >
-                  Save Changes
-                </button>
-              </div>
+        {/* Edit Modal */}
+        <Modal
+          isOpen={editingBlueprint}
+          onClose={() => setEditingBlueprint(false)}
+          title="Edit Blueprint Content"
+        >
+          <div className="space-y-4">
+            <Input
+              label="Project Title"
+              value={editedTitle}
+              onChange={(e) => setEditedTitle(e.target.value)}
+            />
+            <Textarea
+              label="Executive Overview"
+              rows={5}
+              value={editedOverview}
+              onChange={(e) => setEditedOverview(e.target.value)}
+            />
+            <Input
+              label="Required Skills (comma-separated)"
+              value={editedSkills}
+              onChange={(e) => setEditedSkills(e.target.value)}
+            />
+            <div className="flex justify-end gap-2 pt-3 border-t border-hairline">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setEditingBlueprint(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleSaveManualEdit}
+              >
+                Save Changes
+              </Button>
             </div>
           </div>
-        )}
+        </Modal>
 
         {/* AI Revision Modal */}
-        {showRevisionModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <div className="bg-dark-900 border border-dark-800 rounded-2xl max-w-lg w-full p-6 space-y-4">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <FiZap className="w-4 h-4 text-primary-400" />
-                Ask AI Architect to Revise Blueprint
-              </h3>
-              <p className="text-xs text-gray-400">
-                Describe the changes or adjustments you'd like to make. The AI will preserve existing requirements while updating affected sections.
-              </p>
-              <textarea
-                rows={4}
-                value={revisionPrompt}
-                onChange={(e) => setRevisionPrompt(e.target.value)}
-                placeholder="e.g. Add offline mobile sync for rural users, replace Stripe with UPI gateway, or add an emergency SMS alert milestone..."
-                className="w-full bg-dark-950 border border-dark-800 rounded-xl p-3 text-sm text-gray-200 focus:outline-none focus:border-primary-500"
-              />
-              <div className="flex justify-end gap-3 pt-3 border-t border-dark-800">
-                <button
-                  type="button"
-                  onClick={() => setShowRevisionModal(false)}
-                  className="px-4 py-2 rounded-lg bg-dark-800 text-gray-300 text-xs"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleAskAiRevise}
-                  disabled={loading || !revisionPrompt.trim()}
-                  className="px-5 py-2 rounded-lg bg-primary-600 hover:bg-primary-500 text-white text-xs font-semibold disabled:opacity-50"
-                >
-                  Apply AI Revision
-                </button>
-              </div>
+        <Modal
+          isOpen={showRevisionModal}
+          onClose={() => setShowRevisionModal(false)}
+          title="Ask AI Architect to Revise Blueprint"
+        >
+          <div className="space-y-4">
+            <p className="text-xs font-mono text-smoke">
+              Describe the adjustments you'd like. The AI will preserve existing specifications while revising affected sections.
+            </p>
+            <Textarea
+              rows={4}
+              value={revisionPrompt}
+              onChange={(e) => setRevisionPrompt(e.target.value)}
+              placeholder="e.g. Add offline mobile sync for rural users, replace Stripe with UPI gateway, or add an emergency SMS alert milestone..."
+            />
+            <div className="flex justify-end gap-2 pt-3 border-t border-hairline">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowRevisionModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleAskAiRevise}
+                disabled={loading || !revisionPrompt.trim()}
+              >
+                Apply AI Revision
+              </Button>
             </div>
           </div>
-        )}
-      </div>
+        </Modal>
+      </Container>
     );
   }
 
   // ----------------------------------------------------
-  // RENDER: CLASSIC MANUAL FORM (Fallback toggle)
+  // RENDER: CLASSIC MANUAL FORM (Fallback)
   // ----------------------------------------------------
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-8 pb-4 border-b border-dark-800">
+    <Container className="py-8 max-w-4xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 mb-6 border-b border-hairline gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Manual Project Creation</h1>
-          <p className="text-xs text-gray-400 mt-1">Standard form entry without AI discovery</p>
+          <h1 className="text-2xl font-bold text-paper">Manual Project Creation</h1>
+          <p className="text-xs font-mono text-smoke mt-1">Standard form entry without AI discovery</p>
         </div>
-        <button
-          type="button"
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={() => {
             setMode("discovery");
             setStage(STAGES.IDEA);
           }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary-950/70 border border-primary-500/30 text-primary-300 hover:text-white text-xs font-semibold"
         >
-          <FiCpu className="w-3.5 h-3.5" />
-          Switch to AI Discovery Flow
-        </button>
+          <FiCpu className="w-3.5 h-3.5 text-lime" />
+          <span>Switch to AI Discovery Flow</span>
+        </Button>
       </div>
 
       {error && (
-        <div className="mb-6 p-4 rounded-xl bg-red-950/50 border border-red-500/30 text-red-300 flex items-center gap-3">
-          <FiAlertCircle className="w-5 h-5 flex-shrink-0 text-red-400" />
+        <div className="mb-6 p-4 rounded-button bg-red-950/30 border border-red-500/40 text-red-300 font-mono text-xs flex items-center gap-3">
+          <FiAlertCircle className="w-5 h-5 shrink-0 text-red-400" />
           <span>{error}</span>
         </div>
       )}
 
       <form onSubmit={handleClassicSubmit} className="space-y-6">
-        <div className="bg-dark-900 border border-dark-800 rounded-2xl p-6 space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-gray-300 mb-1">Project Title *</label>
-            <input
-              type="text"
+        <Card>
+          <CardContent className="p-6 space-y-4">
+            <Input
+              label="Project Title"
               required
               value={classicTitle}
               onChange={(e) => setClassicTitle(e.target.value)}
               placeholder="e.g. Rural Healthcare Tracker"
-              className="w-full bg-dark-950 border border-dark-800 rounded-lg p-3 text-sm text-gray-100"
             />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-300 mb-1">Detailed Description *</label>
-            <textarea
+            <Textarea
+              label="Detailed Description"
               rows={4}
               required
               value={classicDesc}
               onChange={(e) => setClassicDesc(e.target.value)}
               placeholder="Detailed description of the community problem and requirements..."
-              className="w-full bg-dark-950 border border-dark-800 rounded-lg p-3 text-sm text-gray-100"
             />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1">Category</label>
-              <input
-                type="text"
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input
+                label="Category"
                 value={classicCategory}
                 onChange={(e) => setClassicCategory(e.target.value)}
                 placeholder="e.g. Healthcare, Education, Environment"
-                className="w-full bg-dark-950 border border-dark-800 rounded-lg p-3 text-sm text-gray-100"
               />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1">Required Skills (comma-separated)</label>
-              <input
-                type="text"
+              <Input
+                label="Required Skills (comma-separated)"
                 value={classicSkills}
                 onChange={(e) => setClassicSkills(e.target.value)}
                 placeholder="React, Node.js, MongoDB"
-                className="w-full bg-dark-950 border border-dark-800 rounded-lg p-3 text-sm text-gray-100"
               />
             </div>
-          </div>
-        </div>
 
-        <div className="flex justify-end gap-4">
-          <button
+            {/* Budget & Compensation Section */}
+            <div className="pt-3 border-t border-hairline/60">
+              <h4 className="text-xs font-mono font-bold text-smoke uppercase tracking-wider mb-3">
+                Budget & Compensation
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Select
+                  label="Budget Model"
+                  value={budgetType}
+                  onChange={(e) => setBudgetType(e.target.value)}
+                >
+                  <option value="Volunteer">Volunteer / Civic (Free)</option>
+                  <option value="Fixed">Fixed Grant / Stipend</option>
+                  <option value="Negotiable">Negotiable</option>
+                </Select>
+
+                {budgetType !== "Volunteer" ? (
+                  <>
+                    <Input
+                      label="Budget Amount"
+                      type="number"
+                      min="0"
+                      value={budgetAmount}
+                      onChange={(e) => setBudgetAmount(e.target.value)}
+                      placeholder="e.g. 50000"
+                    />
+                    <Select
+                      label="Currency"
+                      value={currency}
+                      onChange={(e) => setCurrency(e.target.value)}
+                    >
+                      <option value="INR">INR (₹)</option>
+                      <option value="USD">USD ($)</option>
+                      <option value="EUR">EUR (€)</option>
+                      <option value="GBP">GBP (£)</option>
+                    </Select>
+                  </>
+                ) : (
+                  <div className="sm:col-span-2 flex items-center pt-6 text-xs text-smoke font-mono">
+                    Non-profit / open-source volunteer challenge
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Timeline, Deadline & Team Capacity Section */}
+            <div className="pt-3 border-t border-hairline/60">
+              <h4 className="text-xs font-mono font-bold text-smoke uppercase tracking-wider mb-3">
+                Timeline & Team Capacity
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Input
+                  label="Expected Duration"
+                  value={classicDuration}
+                  onChange={(e) => setClassicDuration(e.target.value)}
+                  placeholder="e.g. 30 Days, 6 Weeks"
+                />
+                <Input
+                  label="Deadline Date"
+                  type="date"
+                  value={classicDeadline}
+                  onChange={(e) => setClassicDeadline(e.target.value)}
+                  min={new Date().toISOString().split("T")[0]}
+                />
+                <Input
+                  label="Max Team Size"
+                  type="number"
+                  min="1"
+                  max="20"
+                  value={maxTeamSize}
+                  onChange={(e) => setMaxTeamSize(e.target.value)}
+                  placeholder="e.g. 5"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="flex justify-end">
+          <Button
             type="submit"
+            variant="primary"
+            size="md"
             disabled={loading}
-            className="px-8 py-3 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-sm"
           >
             {loading ? "Creating..." : "Create Project"}
-          </button>
+          </Button>
         </div>
       </form>
-    </div>
+    </Container>
   );
 };
 

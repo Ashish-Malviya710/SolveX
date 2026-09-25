@@ -1,7 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { FiUsers, FiCheck, FiX, FiGithub, FiExternalLink, FiAward } from "react-icons/fi";
+import { FiUsers, FiCheck, FiX, FiInfo } from "react-icons/fi";
 import api from "../../services/api";
+import {
+  Container,
+  PageHeader,
+  Card,
+  CardContent,
+  Button,
+  Badge,
+  Select,
+} from "../../components/ui";
 
 const DeveloperRequests = () => {
   const [projects, setProjects] = useState([]);
@@ -52,8 +61,9 @@ const DeveloperRequests = () => {
     setActionSuccess("");
     try {
       const acceptRes = await api.put(`/requests/${reqId}/accept`);
-      setActionSuccess(acceptRes.data?.message || "Developer request accepted successfully!");
-      // Refresh requests
+      setActionSuccess(
+        acceptRes.data?.message || "Developer request accepted successfully!"
+      );
       const res = await api.get(`/projects/${selectedProjectId}/requests`);
       setRequests(res.data.requests || []);
     } catch (err) {
@@ -75,54 +85,77 @@ const DeveloperRequests = () => {
   };
 
   return (
-    <div className="page-container max-w-5xl space-y-6">
-      <div className="section-header">
-        <span className="badge badge-primary mb-2">Applicant Management</span>
-        <h1 className="section-title">Developer Applications</h1>
-        <p className="section-subtitle">
-          Review developers who have applied to lead and build solutions for your posted challenges.
-        </p>
-      </div>
+    <Container className="py-8">
+      <PageHeader
+        eyebrow="Applicant Management"
+        title="Developer Applications"
+        description="Review developers who have applied to lead and build solutions for your posted challenges."
+      />
 
       {actionSuccess && (
-        <div className="p-3.5 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs rounded-xl flex items-center justify-between">
+        <div className="mb-6 p-3.5 bg-lime/10 border border-lime/30 text-lime text-xs font-mono rounded-button flex items-center justify-between">
           <span>{actionSuccess}</span>
-          <button onClick={() => setActionSuccess("")}>✕</button>
+          <button
+            onClick={() => setActionSuccess("")}
+            className="text-smoke hover:text-paper"
+          >
+            ✕
+          </button>
         </div>
       )}
 
       {actionError && (
-        <div className="p-3.5 bg-red-500/20 border border-red-500/40 text-red-300 text-xs rounded-xl flex items-center justify-between">
+        <div className="mb-6 p-3.5 bg-red-950/30 border border-red-500/40 text-red-300 text-xs font-mono rounded-button flex items-center justify-between">
           <span>{actionError}</span>
-          <button onClick={() => setActionError("")}>✕</button>
+          <button
+            onClick={() => setActionError("")}
+            className="text-smoke hover:text-paper"
+          >
+            ✕
+          </button>
         </div>
       )}
 
       {/* Project Selector Bar */}
       {projects.length > 0 && (
-        <div className="glass-card p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <label className="text-xs font-semibold text-gray-300">Filter By Posted Challenge:</label>
-          <select
-            value={selectedProjectId}
-            onChange={(e) => setSelectedProjectId(e.target.value)}
-            className="select-field text-xs sm:w-80"
-          >
-            {projects.map((p) => (
-              <option key={p._id} value={p._id}>
-                {p.title} ({p.status})
-              </option>
-            ))}
-          </select>
-        </div>
+        <Card className="mb-6">
+          <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <label className="text-xs font-mono uppercase tracking-wider text-smoke">
+              Select Posted Challenge:
+            </label>
+            <div className="w-full sm:w-96">
+              <Select
+                value={selectedProjectId}
+                onChange={(e) => setSelectedProjectId(e.target.value)}
+              >
+                {projects.map((p) => (
+                  <option key={p._id} value={p._id}>
+                    {p.title} ({p.status})
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {selectedProjectHasLeader && (
-        <div className="p-3 bg-dark-900/60 border border-primary-500/20 rounded-xl text-xs text-gray-300 flex items-center justify-between flex-wrap gap-2">
-          <span>
-            👑 Team Leader: <strong className="text-white">{selectedProject.projectLeader?.name || "Assigned"}</strong>. Only the Team Leader reviews and accepts other team member requests.
-          </span>
-          <Link to={`/projects/${selectedProjectId}?tab=team`} className="text-primary-400 hover:underline">
-            View Project Team →
+        <div className="mb-6 p-3.5 bg-graphite/60 border border-hairline rounded-button text-xs text-smoke font-mono flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <FiInfo className="w-4 h-4 text-lime shrink-0" />
+            <span>
+              Designated Team Leader:{" "}
+              <strong className="text-paper">
+                {selectedProject.projectLeader?.name || "Assigned"}
+              </strong>
+              . Only the Team Leader reviews and accepts further team member requests.
+            </span>
+          </div>
+          <Link
+            to={`/projects/${selectedProjectId}?tab=team`}
+            className="text-lime hover:underline shrink-0"
+          >
+            Inspect Project Team →
           </Link>
         </div>
       )}
@@ -131,117 +164,121 @@ const DeveloperRequests = () => {
       {loading ? (
         <div className="space-y-4">
           {[1, 2].map((i) => (
-            <div key={i} className="glass-card p-6 animate-pulse space-y-2">
-              <div className="skeleton-title" />
-              <div className="skeleton-text" />
-            </div>
+            <Card key={i} className="animate-pulse p-6">
+              <div className="h-4 bg-graphite rounded w-1/3 mb-2" />
+              <div className="h-3 bg-graphite rounded w-2/3" />
+            </Card>
           ))}
         </div>
       ) : requests.length === 0 ? (
-        <div className="empty-state glass-card p-12">
-          <FiUsers className="empty-state-icon" />
-          <h3 className="text-base font-bold text-white mb-1">No Applications Yet</h3>
-          <p className="empty-state-text text-xs">
-            When developers discover and request to solve this problem, they will appear here.
+        <Card className="text-center py-16 px-6">
+          <FiUsers className="w-10 h-10 text-iron mx-auto mb-3" />
+          <h3 className="text-base font-semibold text-paper mb-1">
+            No Applications Yet
+          </h3>
+          <p className="text-xs text-smoke font-mono">
+            When developers discover and submit applications for this problem, they will be listed here.
           </p>
-        </div>
+        </Card>
       ) : (
         <div className="space-y-4">
           {requests.map((r) => (
-            <div
-              key={r._id}
-              className="glass-card-hover p-6 flex flex-col md:flex-row md:items-center justify-between gap-6"
-            >
-              {/* Dev Profile Info */}
-              <div className="space-y-3 min-w-0">
-                <div className="flex items-center gap-3">
-                  <div className="avatar w-11 h-11 text-base">
-                    {r.developer?.name?.charAt(0) || "D"}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <Link
-                        to={`/developers/${r.developer?._id}`}
-                        className="text-base font-bold text-white hover:text-primary-400 truncate"
-                      >
-                        {r.developer?.name}
-                      </Link>
-                      <span
-                        className={`badge text-[10px] ${
-                          r.status === "ACCEPTED"
-                            ? "badge-success"
-                            : r.status === "REJECTED"
-                            ? "badge-danger"
-                            : "badge-warning"
-                        }`}
-                      >
-                        {r.status}
+            <Card key={r._id} hoverable>
+              <CardContent className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                {/* Dev Profile Info */}
+                <div className="space-y-3 min-w-0">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-lg bg-graphite border border-hairline flex items-center justify-center font-mono font-bold text-lime text-base shrink-0">
+                      {r.developer?.name?.charAt(0)?.toUpperCase() || "D"}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Link
+                          to={`/developers/${r.developer?._id}`}
+                          className="text-base font-semibold text-paper hover:text-lime transition truncate"
+                        >
+                          {r.developer?.name}
+                        </Link>
+                        <Badge
+                          variant={
+                            r.status === "ACCEPTED"
+                              ? "success"
+                              : r.status === "REJECTED"
+                              ? "danger"
+                              : "warning"
+                          }
+                          size="sm"
+                        >
+                          {r.status}
+                        </Badge>
+                      </div>
+                      <span className="text-xs font-mono text-smoke">
+                        <span className="text-lime font-bold">
+                          {r.developer?.reputation || 0} pts
+                        </span>{" "}
+                        • {r.developer?.projectsCompleted || 0} projects completed
                       </span>
                     </div>
-                    <span className="text-xs text-accent-400 font-semibold">
-                      {r.developer?.reputation || 0} pts • {r.developer?.projectsCompleted || 0} projects completed
-                    </span>
                   </div>
+
+                  {r.message && (
+                    <p className="text-xs font-mono text-smoke bg-void p-3 rounded-button border border-hairline">
+                      "{r.message}"
+                    </p>
+                  )}
+
+                  {r.developer?.skills && r.developer.skills.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {r.developer.skills.map((sk, idx) => (
+                        <Badge key={idx} variant="neutral" size="sm">
+                          {sk}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                {r.message && (
-                  <p className="text-xs text-gray-300 italic bg-dark-900/60 p-3 rounded-xl border border-dark-700/60">
-                    "{r.message}"
-                  </p>
-                )}
-
-                {r.developer?.skills && (
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {r.developer.skills.map((sk, idx) => (
-                      <span key={idx} className="badge badge-neutral text-[10px] py-0 px-2">
-                        {sk}
-                      </span>
+                {/* Action Buttons */}
+                <div className="flex items-center gap-2.5 self-end md:self-center shrink-0">
+                  {r.status === "PENDING" &&
+                    (!selectedProjectHasLeader ? (
+                      <>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => handleAccept(r._id)}
+                        >
+                          <FiCheck className="w-4 h-4" />
+                          <span>Accept as Leader</span>
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => handleReject(r._id)}
+                        >
+                          <FiX className="w-4 h-4" />
+                          <span>Decline</span>
+                        </Button>
+                      </>
+                    ) : (
+                      <Badge variant="neutral" size="sm">
+                        Team Leader Reviews
+                      </Badge>
                     ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2.5 self-end md:self-center flex-shrink-0">
-                {r.status === "PENDING" && (
-                  !selectedProjectHasLeader ? (
-                    <>
-                      <button
-                        onClick={() => handleAccept(r._id)}
-                        className="btn-success btn-sm flex items-center gap-1 text-xs"
-                      >
-                        <FiCheck className="w-4 h-4" />
-                        <span>Accept as Leader</span>
-                      </button>
-                      <button
-                        onClick={() => handleReject(r._id)}
-                        className="btn-secondary btn-sm text-red-400 text-xs"
-                      >
-                        <FiX className="w-4 h-4" />
-                        <span>Decline</span>
-                      </button>
-                    </>
-                  ) : (
-                    <span
-                      className="badge badge-neutral text-xs py-1 px-3 border border-dark-600"
-                      title="Only the designated Team Leader can accept or decline team member requests"
-                    >
-                      Team Leader Reviews
-                    </span>
-                  )
-                )}
-                <Link
-                  to={`/developers/${r.developer?._id}`}
-                  className="btn-secondary btn-sm text-xs"
-                >
-                  Full Profile
-                </Link>
-              </div>
-            </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    to={`/developers/${r.developer?._id}`}
+                  >
+                    Full Profile
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}
-    </div>
+    </Container>
   );
 };
 

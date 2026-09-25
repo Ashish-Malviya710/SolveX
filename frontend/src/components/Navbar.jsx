@@ -1,7 +1,9 @@
 import React, { useState, useContext, useRef, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
+import { getDashboardRoute } from "./PublicOnlyRoute";
 import NotificationBell from "./NotificationBell";
+import { Button, Badge } from "./ui";
 import {
   FiCompass,
   FiAward,
@@ -51,18 +53,21 @@ const Navbar = () => {
 
   const isActive = (path) => location.pathname === path;
 
+  // Primary brand destination
+  const brandDestination = isAuthenticated && user ? getDashboardRoute(user.role) : "/";
+
   return (
-    <nav className="sticky top-0 z-40 bg-dark-950/80 backdrop-blur-xl border-b border-dark-700/60 shadow-lg">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <nav className="sticky top-0 z-40 bg-void/95 backdrop-blur-md border-b border-iron">
+      <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Brand Logo */}
+          {/* Brand Logo & Main Nav */}
           <div className="flex items-center gap-8">
-            <Link to="/" className="flex items-center gap-2.5 group">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary-600 via-accent-500 to-neon-green flex items-center justify-center text-white font-black text-lg shadow-glow-sm group-hover:scale-105 transition-transform">
+            <Link to={brandDestination} className="flex items-center gap-2.5 group">
+              <div className="w-8 h-8 rounded-inputs bg-carbon border border-iron text-lime font-mono font-bold text-sm flex items-center justify-center shadow-glow-sm group-hover:border-steel transition-colors">
                 S
               </div>
-              <span className="text-xl font-bold font-display tracking-tight text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-primary-400 group-hover:to-accent-400 transition-all">
-                Solve<span className="text-accent-400">X</span>
+              <span className="text-lg font-bold font-sans tracking-tight text-white">
+                Solve<span className="text-lime">X</span>
               </span>
             </Link>
 
@@ -71,61 +76,61 @@ const Navbar = () => {
               {user?.role === "PROBLEM_PROVIDER" ? (
                 <>
                   <Link
-                    to="/provider/dashboard"
-                    className={`px-3.5 py-2 rounded-xl text-sm font-medium transition flex items-center gap-1.5 ${
-                      isActive("/provider/dashboard")
-                        ? "bg-dark-800 text-white border border-dark-600/60 shadow-sm"
-                        : "text-gray-300 hover:text-white hover:bg-dark-800/50"
+                    to="/provider/find"
+                    className={`px-3 py-1.5 rounded-buttons text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                      isActive("/provider/find")
+                        ? "bg-carbon text-white border border-iron"
+                        : "text-smoke hover:text-white"
                     }`}
                   >
-                    <FiFolder className="w-4 h-4 text-primary-400" />
-                    My Projects
+                    <FiUsers className="w-4 h-4 text-lime" />
+                    Find Developers
                   </Link>
                   <Link
-                    to="/provider/find"
-                    className={`px-3.5 py-2 rounded-xl text-sm font-medium transition flex items-center gap-1.5 ${
-                      isActive("/provider/find")
-                        ? "bg-dark-800 text-white border border-dark-600/60 shadow-sm"
-                        : "text-gray-300 hover:text-white hover:bg-dark-800/50"
+                    to="/provider/dashboard"
+                    className={`px-3 py-1.5 rounded-buttons text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                      isActive("/provider/dashboard")
+                        ? "bg-carbon text-white border border-iron"
+                        : "text-smoke hover:text-white"
                     }`}
                   >
-                    <FiUsers className="w-4 h-4 text-emerald-400" />
-                    Find Developers
+                    <FiFolder className="w-4 h-4 text-smoke" />
+                    My Projects
                   </Link>
                 </>
               ) : (
                 <Link
                   to="/explore"
-                  className={`px-3.5 py-2 rounded-xl text-sm font-medium transition flex items-center gap-1.5 ${
+                  className={`px-3 py-1.5 rounded-buttons text-sm font-medium transition-colors flex items-center gap-1.5 ${
                     isActive("/explore")
-                      ? "bg-dark-800 text-white border border-dark-600/60 shadow-sm"
-                      : "text-gray-300 hover:text-white hover:bg-dark-800/50"
+                      ? "bg-carbon text-white border border-iron"
+                      : "text-smoke hover:text-white"
                   }`}
                 >
-                  <FiCompass className="w-4 h-4 text-primary-400" />
+                  <FiCompass className="w-4 h-4 text-lime" />
                   Explore
                 </Link>
               )}
               <Link
                 to="/showcase"
-                className={`px-3.5 py-2 rounded-xl text-sm font-medium transition flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-buttons text-sm font-medium transition-colors flex items-center gap-1.5 ${
                   isActive("/showcase")
-                    ? "bg-dark-800 text-white border border-dark-600/60 shadow-sm"
-                    : "text-gray-300 hover:text-white hover:bg-dark-800/50"
+                    ? "bg-carbon text-white border border-iron"
+                    : "text-smoke hover:text-white"
                 }`}
               >
-                <FiLayers className="w-4 h-4 text-emerald-400" />
+                <FiLayers className="w-4 h-4 text-smoke" />
                 Showcase
               </Link>
               <Link
                 to="/developers"
-                className={`px-3.5 py-2 rounded-xl text-sm font-medium transition flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-buttons text-sm font-medium transition-colors flex items-center gap-1.5 ${
                   isActive("/developers")
-                    ? "bg-dark-800 text-white border border-dark-600/60 shadow-sm"
-                    : "text-gray-300 hover:text-white hover:bg-dark-800/50"
+                    ? "bg-carbon text-white border border-iron"
+                    : "text-smoke hover:text-white"
                 }`}
               >
-                <FiAward className="w-4 h-4 text-accent-400" />
+                <FiAward className="w-4 h-4 text-smoke" />
                 Top Developers
               </Link>
             </div>
@@ -137,33 +142,36 @@ const Navbar = () => {
               <>
                 {/* Role Specific Shortcuts */}
                 {user?.role === "PROBLEM_PROVIDER" && (
-                  <Link
+                  <Button
                     to="/provider/create"
-                    className="btn-accent btn-sm flex items-center gap-1.5"
+                    variant="primary"
+                    size="sm"
+                    icon={FiPlusCircle}
                   >
-                    <FiPlusCircle className="w-4 h-4" />
                     Post Problem
-                  </Link>
+                  </Button>
                 )}
 
                 {user?.role === "DEVELOPER" && (
-                  <Link
+                  <Button
                     to="/developer/dashboard"
-                    className="btn-secondary btn-sm flex items-center gap-1.5"
+                    variant="secondary"
+                    size="sm"
+                    icon={FiFolder}
                   >
-                    <FiFolder className="w-4 h-4 text-primary-400" />
                     My Workspace
-                  </Link>
+                  </Button>
                 )}
 
                 {user?.role === "ADMIN" && (
-                  <Link
+                  <Button
                     to="/admin/dashboard"
-                    className="btn-secondary btn-sm flex items-center gap-1.5 border-amber-500/30 text-amber-300"
+                    variant="secondary"
+                    size="sm"
+                    icon={FiShield}
                   >
-                    <FiShield className="w-4 h-4" />
-                    Admin
-                  </Link>
+                    Admin Console
+                  </Button>
                 )}
 
                 {/* Notifications Bell */}
@@ -173,29 +181,29 @@ const Navbar = () => {
                 <div className="relative" ref={dropdownRef}>
                   <button
                     onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                    className="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-dark-800/80 transition border border-transparent hover:border-dark-600/50"
+                    className="flex items-center gap-2 p-1.5 rounded-buttons hover:bg-carbon border border-transparent hover:border-iron transition-all"
                   >
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary-600 to-accent-500 flex items-center justify-center text-white font-bold text-xs shadow-glow-sm">
+                    <div className="w-7 h-7 rounded-inputs bg-graphite border border-iron text-lime font-mono font-bold text-xs flex items-center justify-center">
                       {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
                     </div>
-                    <span className="text-xs font-medium text-gray-200 max-w-[100px] truncate">
+                    <span className="text-xs font-medium text-bone max-w-[110px] truncate">
                       {user?.name}
                     </span>
                   </button>
 
                   {userDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-64 glass-card border border-dark-600/60 rounded-2xl shadow-glass z-50 overflow-hidden py-1.5 animate-scale-in">
-                      <div className="px-4 py-3 border-b border-dark-700/60 bg-dark-900/60">
+                    <div className="absolute right-0 mt-2 w-64 bg-carbon border border-iron rounded-cards shadow-2xl z-50 overflow-hidden py-1 animate-scale-in">
+                      <div className="px-4 py-3 border-b border-iron/60 bg-void/50">
                         <p className="text-sm font-semibold text-white truncate">{user?.name}</p>
-                        <p className="text-xs text-gray-400 truncate">{user?.email}</p>
+                        <p className="text-xs text-smoke truncate">{user?.email}</p>
                         <div className="mt-2 flex items-center gap-2">
-                          <span className="badge badge-primary text-[10px] py-0.5 px-2">
+                          <Badge variant="lime" size="sm">
                             {user?.role?.replace("_", " ")}
-                          </span>
+                          </Badge>
                           {user?.role === "DEVELOPER" && (
-                            <span className="badge badge-accent text-[10px] py-0.5 px-2">
+                            <Badge variant="neutral" size="sm">
                               {user?.reputation || 0} pts
-                            </span>
+                            </Badge>
                           )}
                         </div>
                       </div>
@@ -205,30 +213,30 @@ const Navbar = () => {
                           <>
                             <Link
                               to="/developer/dashboard"
-                              className="flex items-center gap-2.5 px-4 py-2 text-xs text-gray-300 hover:text-white hover:bg-dark-700/50 transition"
+                              className="flex items-center gap-2.5 px-4 py-2 text-xs text-bone hover:text-white hover:bg-graphite transition-colors"
                             >
-                              <FiFolder className="w-4 h-4 text-primary-400" />
+                              <FiFolder className="w-4 h-4 text-lime" />
                               Developer Dashboard
                             </Link>
                             <Link
                               to="/developer/portfolio"
-                              className="flex items-center gap-2.5 px-4 py-2 text-xs text-gray-300 hover:text-white hover:bg-dark-700/50 transition"
+                              className="flex items-center gap-2.5 px-4 py-2 text-xs text-bone hover:text-white hover:bg-graphite transition-colors"
                             >
-                              <FiUser className="w-4 h-4 text-accent-400" />
+                              <FiUser className="w-4 h-4 text-smoke" />
                               My Portfolio
                             </Link>
                             <Link
                               to="/developer/requests"
-                              className="flex items-center gap-2.5 px-4 py-2 text-xs text-gray-300 hover:text-white hover:bg-dark-700/50 transition"
+                              className="flex items-center gap-2.5 px-4 py-2 text-xs text-bone hover:text-white hover:bg-graphite transition-colors"
                             >
-                              <FiSend className="w-4 h-4 text-emerald-400" />
+                              <FiSend className="w-4 h-4 text-smoke" />
                               Join &amp; Team Requests
                             </Link>
                             <Link
                               to="/developer/invitations"
-                              className="flex items-center gap-2.5 px-4 py-2 text-xs text-gray-300 hover:text-white hover:bg-dark-700/50 transition"
+                              className="flex items-center gap-2.5 px-4 py-2 text-xs text-bone hover:text-white hover:bg-graphite transition-colors"
                             >
-                              <FiMail className="w-4 h-4 text-blue-400" />
+                              <FiMail className="w-4 h-4 text-smoke" />
                               My Invitations
                             </Link>
                           </>
@@ -237,49 +245,49 @@ const Navbar = () => {
                         {user?.role === "PROBLEM_PROVIDER" && (
                           <>
                             <Link
-                              to="/provider/dashboard"
-                              className="flex items-center gap-2.5 px-4 py-2 text-xs text-gray-300 hover:text-white hover:bg-dark-700/50 transition"
+                              to="/provider/find"
+                              className="flex items-center gap-2.5 px-4 py-2 text-xs text-bone hover:text-white hover:bg-graphite transition-colors"
                             >
-                              <FiFolder className="w-4 h-4 text-primary-400" />
-                              Provider Dashboard
+                              <FiUsers className="w-4 h-4 text-lime" />
+                              Find Developers
+                            </Link>
+                            <Link
+                              to="/provider/dashboard"
+                              className="flex items-center gap-2.5 px-4 py-2 text-xs text-bone hover:text-white hover:bg-graphite transition-colors"
+                            >
+                              <FiFolder className="w-4 h-4 text-smoke" />
+                              My Posted Projects
                             </Link>
                             <Link
                               to="/provider/requests"
-                              className="flex items-center gap-2.5 px-4 py-2 text-xs text-gray-300 hover:text-white hover:bg-dark-700/50 transition"
+                              className="flex items-center gap-2.5 px-4 py-2 text-xs text-bone hover:text-white hover:bg-graphite transition-colors"
                             >
-                              <FiUsers className="w-4 h-4 text-accent-400" />
+                              <FiUsers className="w-4 h-4 text-smoke" />
                               Developer Requests
                             </Link>
                             <Link
                               to="/provider/proposals"
-                              className="flex items-center gap-2.5 px-4 py-2 text-xs text-gray-300 hover:text-white hover:bg-dark-700/50 transition"
+                              className="flex items-center gap-2.5 px-4 py-2 text-xs text-bone hover:text-white hover:bg-graphite transition-colors"
                             >
-                              <FiLayers className="w-4 h-4 text-amber-400" />
+                              <FiLayers className="w-4 h-4 text-smoke" />
                               Review Proposals
-                            </Link>
-                            <Link
-                              to="/provider/find"
-                              className="flex items-center gap-2.5 px-4 py-2 text-xs text-gray-300 hover:text-white hover:bg-dark-700/50 transition"
-                            >
-                              <FiUsers className="w-4 h-4 text-emerald-400" />
-                              Find Developers
                             </Link>
                           </>
                         )}
 
                         <Link
                           to="/settings"
-                          className="flex items-center gap-2.5 px-4 py-2 text-xs text-gray-300 hover:text-white hover:bg-dark-700/50 transition"
+                          className="flex items-center gap-2.5 px-4 py-2 text-xs text-bone hover:text-white hover:bg-graphite transition-colors"
                         >
-                          <FiSettings className="w-4 h-4 text-gray-400" />
-                          Profile & Settings
+                          <FiSettings className="w-4 h-4 text-smoke" />
+                          Profile &amp; Settings
                         </Link>
                       </div>
 
-                      <div className="border-t border-dark-700/60 pt-1">
+                      <div className="border-t border-iron/60 pt-1">
                         <button
                           onClick={handleLogout}
-                          className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-red-400 hover:text-red-300 hover:bg-dark-700/50 transition text-left"
+                          className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-red-400 hover:text-red-300 hover:bg-graphite transition-colors text-left"
                         >
                           <FiLogOut className="w-4 h-4" />
                           Sign Out
@@ -291,12 +299,12 @@ const Navbar = () => {
               </>
             ) : (
               <div className="flex items-center gap-2.5">
-                <Link to="/login" className="btn-secondary btn-sm">
+                <Button to="/login" variant="ghost" size="sm">
                   Sign In
-                </Link>
-                <Link to="/register" className="btn-primary btn-sm">
+                </Button>
+                <Button to="/register" variant="primary" size="sm">
                   Get Started
-                </Link>
+                </Button>
               </div>
             )}
           </div>
@@ -306,7 +314,8 @@ const Navbar = () => {
             {isAuthenticated && <NotificationBell />}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-dark-800"
+              className="p-2 rounded-inputs text-smoke hover:text-white hover:bg-graphite"
+              aria-label="Toggle navigation menu"
             >
               {mobileMenuOpen ? <FiX className="w-6 h-6" /> : <FiMenu className="w-6 h-6" />}
             </button>
@@ -316,53 +325,53 @@ const Navbar = () => {
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden glass-card border-t border-dark-700/60 px-4 pt-2 pb-6 space-y-2">
+        <div className="md:hidden bg-carbon border-t border-iron px-4 pt-2 pb-6 space-y-2">
           {user?.role === "PROBLEM_PROVIDER" ? (
             <>
               <Link
-                to="/provider/dashboard"
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-dark-800"
+                to="/provider/find"
+                className="flex items-center gap-2 px-3 py-2 rounded-inputs text-sm text-bone hover:bg-graphite"
               >
-                <FiFolder className="w-4 h-4 text-primary-400" />
-                My Projects
+                <FiUsers className="w-4 h-4 text-lime" />
+                Find Developers
               </Link>
               <Link
-                to="/provider/find"
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-dark-800"
+                to="/provider/dashboard"
+                className="flex items-center gap-2 px-3 py-2 rounded-inputs text-sm text-bone hover:bg-graphite"
               >
-                <FiUsers className="w-4 h-4 text-emerald-400" />
-                Find Developers
+                <FiFolder className="w-4 h-4 text-smoke" />
+                My Projects
               </Link>
             </>
           ) : (
             <Link
               to="/explore"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-dark-800"
+              className="flex items-center gap-2 px-3 py-2 rounded-inputs text-sm text-bone hover:bg-graphite"
             >
-              <FiCompass className="w-4 h-4 text-primary-400" />
+              <FiCompass className="w-4 h-4 text-lime" />
               Explore Problems
             </Link>
           )}
           <Link
             to="/showcase"
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-dark-800"
+            className="flex items-center gap-2 px-3 py-2 rounded-inputs text-sm text-bone hover:bg-graphite"
           >
-            <FiLayers className="w-4 h-4 text-emerald-400" />
+            <FiLayers className="w-4 h-4 text-smoke" />
             Showcase
           </Link>
           <Link
             to="/developers"
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-dark-800"
+            className="flex items-center gap-2 px-3 py-2 rounded-inputs text-sm text-bone hover:bg-graphite"
           >
-            <FiAward className="w-4 h-4 text-accent-400" />
+            <FiAward className="w-4 h-4 text-smoke" />
             Top Developers
           </Link>
 
           {isAuthenticated ? (
-            <div className="pt-3 border-t border-dark-700/60 space-y-2">
+            <div className="pt-3 border-t border-iron space-y-2">
               <div className="px-3 py-1">
                 <p className="text-xs font-semibold text-white">{user?.name}</p>
-                <span className="text-[10px] text-primary-400 font-medium">
+                <span className="text-[10px] text-lime font-mono">
                   {user?.role?.replace("_", " ")}
                 </span>
               </div>
@@ -370,25 +379,25 @@ const Navbar = () => {
                 <>
                   <Link
                     to="/developer/dashboard"
-                    className="block px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-dark-800"
+                    className="block px-3 py-2 rounded-inputs text-sm text-bone hover:bg-graphite"
                   >
                     Developer Dashboard
                   </Link>
                   <Link
                     to="/developer/portfolio"
-                    className="block px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-dark-800"
+                    className="block px-3 py-2 rounded-inputs text-sm text-bone hover:bg-graphite"
                   >
                     My Portfolio
                   </Link>
                   <Link
                     to="/developer/requests"
-                    className="block px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-dark-800"
+                    className="block px-3 py-2 rounded-inputs text-sm text-bone hover:bg-graphite"
                   >
                     Join &amp; Team Requests
                   </Link>
                   <Link
                     to="/developer/invitations"
-                    className="block px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-dark-800"
+                    className="block px-3 py-2 rounded-inputs text-sm text-bone hover:bg-graphite"
                   >
                     My Invitations
                   </Link>
@@ -397,26 +406,32 @@ const Navbar = () => {
               {user?.role === "PROBLEM_PROVIDER" && (
                 <>
                   <Link
+                    to="/provider/find"
+                    className="block px-3 py-2 rounded-inputs text-sm text-lime hover:bg-graphite"
+                  >
+                    Find Developers
+                  </Link>
+                  <Link
                     to="/provider/dashboard"
-                    className="block px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-dark-800"
+                    className="block px-3 py-2 rounded-inputs text-sm text-bone hover:bg-graphite"
                   >
                     Provider Dashboard
                   </Link>
                   <Link
                     to="/provider/requests"
-                    className="block px-3 py-2 rounded-lg text-sm text-accent-400 hover:bg-dark-800"
+                    className="block px-3 py-2 rounded-inputs text-sm text-smoke hover:bg-graphite"
                   >
                     Developer Requests
                   </Link>
                   <Link
                     to="/provider/proposals"
-                    className="block px-3 py-2 rounded-lg text-sm text-amber-400 hover:bg-dark-800"
+                    className="block px-3 py-2 rounded-inputs text-sm text-smoke hover:bg-graphite"
                   >
                     Review Proposals
                   </Link>
                   <Link
                     to="/provider/create"
-                    className="block px-3 py-2 rounded-lg text-sm text-primary-400 hover:bg-dark-800"
+                    className="block px-3 py-2 rounded-inputs text-sm text-lime hover:bg-graphite font-semibold"
                   >
                     + Post Problem
                   </Link>
@@ -425,32 +440,32 @@ const Navbar = () => {
               {user?.role === "ADMIN" && (
                 <Link
                   to="/admin/dashboard"
-                  className="block px-3 py-2 rounded-lg text-sm text-amber-400 hover:bg-dark-800"
+                  className="block px-3 py-2 rounded-inputs text-sm text-lime hover:bg-graphite"
                 >
                   Admin Console
                 </Link>
               )}
               <Link
                 to="/settings"
-                className="block px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-dark-800"
+                className="block px-3 py-2 rounded-inputs text-sm text-bone hover:bg-graphite"
               >
                 Settings
               </Link>
               <button
                 onClick={handleLogout}
-                className="w-full text-left px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-dark-800"
+                className="w-full text-left px-3 py-2 rounded-inputs text-sm text-red-400 hover:bg-graphite"
               >
                 Sign Out
               </button>
             </div>
           ) : (
-            <div className="pt-3 border-t border-dark-700/60 flex flex-col gap-2">
-              <Link to="/login" className="btn-secondary w-full text-center py-2.5">
+            <div className="pt-3 border-t border-iron flex flex-col gap-2">
+              <Button to="/login" variant="secondary" size="md" className="w-full">
                 Sign In
-              </Link>
-              <Link to="/register" className="btn-primary w-full text-center py-2.5">
+              </Button>
+              <Button to="/register" variant="primary" size="md" className="w-full">
                 Get Started
-              </Link>
+              </Button>
             </div>
           )}
         </div>
