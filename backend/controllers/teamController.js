@@ -452,3 +452,59 @@ exports.inviteReplacement = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+/**
+ * PUT /api/projects/:id/team/size
+ * Project Leader (or Provider / Admin) sets or adjusts the max team size.
+ */
+exports.updateTeamSize = async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id);
+    if (!project) return res.status(404).json({ message: "Project not found" });
+
+    const userId = req.user._id.toString();
+    const isLeader = project.projectLeader && project.projectLeader.toString() === userId;
+    const isProvider = project.problemProvider && project.problemProvider.toString() === userId;
+    const isAdmin = req.user.role === "ADMIN";
+
+    if (!isLeader && !isProvider && !isAdmin) {
+      return res.status(403).json({ message: "Only the Project Leader or Problem Provider can adjust the team size" });
+    }
+
+    const { maxTeamSize } = req.body;
+    const parsedSize = parseInt(maxTeamSize, 10);
+    if (!parsedSize || parsedSize < 1 || parsedSize > 25) {
+      return res.status(400).json({ message: "Team size must be a number between 1 and 25 developers." });
+    }
+
+    const currentMembersCount = project.teamMembers ? project.teamMembers.length : 0;
+    if (parsedSize < currentMembersCount) {
+      return res.status(400).json({
+        message: `Cannot set team size to ${parsedSize} because the project already has ${currentMembersCount} active members.`
+      });
+    }
+
+    project.maxTeamSize = parsedSize;
+    await project.save();
+
+    // Notify provider if leader updated it
+    if (isLeader && project.problemProvider && project.problemProvider.toString() !== userId) {
+      await createNotification(
+        project.problemProvider,
+        "TEAM_UPDATED",
+        `${req.user.name} (Project Leader) set the team size for "${project.title}" to ${parsedSize} developers.`,
+        { projectId: project._id }
+      );
+    }
+
+    res.status(200).json({
+      message: `Team size capacity successfully set to ${parsedSize} developers!`,
+      maxTeamSize: project.maxTeamSize,
+      project,
+    });
+  } catch (err) {
+    console.error("Update team size error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+

@@ -62,7 +62,9 @@ const FindDevelopers = () => {
     try {
       const res = await api.get("/projects/my-projects");
       const active = (res.data.projects || []).filter(
-        (p) => ["OPEN", "LEADER_SELECTED", "TEAM_FORMING"].includes(p.status)
+        (p) =>
+          ["OPEN", "LEADER_SELECTED", "TEAM_FORMING", "PROPOSAL_PENDING", "CHANGES_REQUESTED", "APPROVED", "IN_DEVELOPMENT"].includes(p.status) &&
+          (!p.teamMembers || p.teamMembers.length < (p.maxTeamSize || 5))
       );
       setMyProblems(active);
       if (active.length > 0) setSelectedProject(active[0]._id);

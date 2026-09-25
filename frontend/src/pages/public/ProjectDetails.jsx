@@ -32,6 +32,7 @@ import {
   FiMessageCircle,
   FiAward,
   FiCheck,
+  FiX,
   FiCode,
   FiLayers,
 } from "react-icons/fi";
@@ -60,6 +61,17 @@ const ProjectDetails = () => {
   const [requestModalOpen, setRequestModalOpen] = useState(false);
   const [requestMessage, setRequestMessage] = useState("");
   const [submittingRequest, setSubmittingRequest] = useState(false);
+
+  // Team Size Adjustment (Leader / Provider / Admin)
+  const [teamSizeModalOpen, setTeamSizeModalOpen] = useState(false);
+  const [newTeamSize, setNewTeamSize] = useState(5);
+  const [updatingTeamSize, setUpdatingTeamSize] = useState(false);
+  const [teamSizeError, setTeamSizeError] = useState("");
+
+  // Incoming Join Requests (Leader / Provider / Admin)
+  const [projectRequests, setProjectRequests] = useState([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
+  const [requestActionLoading, setRequestActionLoading] = useState({});
 
   // GitHub stats
   const [githubStats, setGithubStats] = useState(null);
@@ -377,21 +389,74 @@ const ProjectDetails = () => {
 
   // Helper: hasGitAccess depends on computed values
   const _hasGitAccess = () => {
-    const _isLeader = user && project && project.projectLeader?._id === user._id;
-    const _isMember = user && project && project.teamMembers?.some((m) => m.user?._id === user._id);
+    const _isLeader = user && project && ((project.projectLeader?._id || project.projectLeader)?.toString() === user._id?.toString());
+    const _isMember = user && project && project.teamMembers?.some((m) => ((m.user?._id || m.user)?.toString() === user._id?.toString()));
     const _isAdmin = user && user.role === "ADMIN";
-    const _isProvider = user && project && project.problemProvider?._id === user._id;
+    const _isProvider = user && project && ((project.problemProvider?._id || project.problemProvider)?.toString() === user._id?.toString());
     return _isLeader || _isMember || (_isProvider && project?.allowProviderGitAccess) || _isAdmin;
   };
 
   // Helper flags
 
-  const isProvider = user && project && project.problemProvider?._id === user._id;
-  const isLeader = user && project && project.projectLeader?._id === user._id;
-  const isMember = user && project && project.teamMembers?.some((m) => m.user?._id === user._id);
+  const isProvider = user && project && ((project.problemProvider?._id || project.problemProvider)?.toString() === user._id?.toString());
+  const isLeader = user && project && ((project.projectLeader?._id || project.projectLeader)?.toString() === user._id?.toString());
+  const isMember = user && project && project.teamMembers?.some((m) => ((m.user?._id || m.user)?.toString() === user._id?.toString()));
   const isAdmin = user && user.role === "ADMIN";
   const isParticipant = isProvider || isLeader || isMember || isAdmin;
   const hasGitAccess = isLeader || isMember || (isProvider && project?.allowProviderGitAccess) || isAdmin;
+
+  const pendingRequestsCount = projectRequests.filter((r) => r.status === "PENDING").length;
+
+  const fetchProjectRequests = useCallback(async () => {
+    if (!id) return;
+    try {
+      setLoadingRequests(true);
+      const res = await api.get(`/projects/${id}/requests`);
+      setProjectRequests(res.data?.requests || []);
+    } catch (err) {
+      console.warn("Requests fetch non-blocking:", err.message);
+      setProjectRequests([]);
+    } finally {
+      setLoadingRequests(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    if (project && (isLeader || isProvider || isAdmin)) {
+      fetchProjectRequests();
+    }
+  }, [project, isLeader, isProvider, isAdmin, fetchProjectRequests]);
+
+  const handleAcceptJoinRequest = async (reqId) => {
+    setRequestActionLoading((prev) => ({ ...prev, [reqId]: "accept" }));
+    setActionError("");
+    setActionSuccess("");
+    try {
+      const res = await api.put(`/requests/${reqId}/accept`);
+      setActionSuccess(res.data?.message || "Developer accepted into the team!");
+      fetchProjectData();
+      fetchProjectRequests();
+    } catch (err) {
+      setActionError(err.response?.data?.message || "Failed to accept request.");
+    } finally {
+      setRequestActionLoading((prev) => ({ ...prev, [reqId]: null }));
+    }
+  };
+
+  const handleRejectJoinRequest = async (reqId) => {
+    setRequestActionLoading((prev) => ({ ...prev, [reqId]: "reject" }));
+    setActionError("");
+    setActionSuccess("");
+    try {
+      const res = await api.put(`/requests/${reqId}/reject`);
+      setActionSuccess("Request declined.");
+      fetchProjectRequests();
+    } catch (err) {
+      setActionError(err.response?.data?.message || "Failed to decline request.");
+    } finally {
+      setRequestActionLoading((prev) => ({ ...prev, [reqId]: null }));
+    }
+  };
 
   // Handlers
   const handleToggleProviderGitAccess = async () => {
@@ -419,6 +484,34 @@ const ProjectDetails = () => {
       setActionError(err.response?.data?.message || "Failed to submit request.");
     } finally {
       setSubmittingRequest(false);
+    }
+  };
+
+  const handleUpdateTeamSize = async (e) => {
+    e.preventDefault();
+    const parsed = parseInt(newTeamSize, 10);
+    const currentMembers = project?.teamMembers ? project.teamMembers.length : 0;
+    if (!parsed || parsed < 1 || parsed > 25) {
+      setTeamSizeError("Team size must be between 1 and 25 developers.");
+      return;
+    }
+    if (parsed < currentMembers) {
+      setTeamSizeError(`Cannot set team size lower than current active member count (${currentMembers}).`);
+      return;
+    }
+
+    setUpdatingTeamSize(true);
+    setTeamSizeError("");
+    try {
+      const res = await api.put(`/projects/${id}/team/size`, { maxTeamSize: parsed });
+      setProject((prev) => ({ ...prev, maxTeamSize: parsed }));
+      setActionSuccess(res.data?.message || `Team capacity set to ${parsed} developers!`);
+      setTeamSizeModalOpen(false);
+      fetchProjectData();
+    } catch (err) {
+      setTeamSizeError(err.response?.data?.message || "Failed to update team size.");
+    } finally {
+      setUpdatingTeamSize(false);
     }
   };
 
@@ -653,8 +746,8 @@ const ProjectDetails = () => {
 
           {/* Quick Action Button for Developers */}
           <div className="flex items-center gap-3">
-            {user?.role === "DEVELOPER" && !isParticipant && ["OPEN", "LEADER_SELECTED", "TEAM_FORMING"].includes(project.status) && (
-              project.teamMembers?.length < project.maxTeamSize ? (
+            {user?.role === "DEVELOPER" && !isParticipant && ["OPEN", "LEADER_SELECTED", "TEAM_FORMING", "PROPOSAL_PENDING", "CHANGES_REQUESTED", "APPROVED", "IN_DEVELOPMENT"].includes(project.status) && (
+              project.teamMembers?.length < (project.maxTeamSize || 5) ? (
                 <button
                   onClick={() => setRequestModalOpen(true)}
                   className="btn-primary flex items-center gap-2 shadow-glow-sm"
@@ -677,7 +770,13 @@ const ProjectDetails = () => {
             { id: "overview", label: "Overview", icon: FiFileText },
             ...(project?.blueprint ? [{ id: "blueprint", label: "Technical Blueprint", icon: FiCpu }] : []),
             { id: "requirements", label: "AI Requirements", icon: FiCpu },
-            { id: "team", label: `Team (${project.teamMembers?.length || 0}/${project.maxTeamSize})`, icon: FiUsers },
+            {
+              id: "team",
+              label: (isLeader || isProvider || isAdmin) && pendingRequestsCount > 0
+                ? `Team (${project.teamMembers?.length || 0}/${project.maxTeamSize || 5}) • ${pendingRequestsCount} New`
+                : `Team (${project.teamMembers?.length || 0}/${project.maxTeamSize || 5})`,
+              icon: FiUsers,
+            },
             ...(isParticipant ? [{ id: "chat", label: "Project Chat", icon: FiMessageSquare }] : []),
             { id: "proposal", label: "Project Structure", icon: FiCheckSquare },
             ...(isParticipant ? [{ id: "github", label: "GitHub Grid", icon: FiGithub }] : []),
@@ -771,7 +870,23 @@ const ProjectDetails = () => {
                   <span className="text-gray-400 flex items-center gap-1.5">
                     <FiUsers className="text-primary-400" /> Max Team Size
                   </span>
-                  <span className="font-bold text-white">{project.maxTeamSize} Developers</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-white">{project.maxTeamSize || 5} Developers</span>
+                    {(isLeader || isProvider || isAdmin) && (
+                      <button
+                        onClick={() => {
+                          setNewTeamSize(project.maxTeamSize || 5);
+                          setTeamSizeModalOpen(true);
+                          setTeamSizeError("");
+                        }}
+                        className="text-xs text-primary-400 hover:text-primary-300 underline flex items-center gap-1 ml-1"
+                        title="Decide or adjust team capacity"
+                      >
+                        <FiEdit className="w-3 h-3" />
+                        <span>Edit</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {project.expectedDuration && (
@@ -1116,28 +1231,50 @@ const ProjectDetails = () => {
           <div className="glass-card p-6 sm:p-8 space-y-6">
             <div className="flex items-center justify-between pb-4 border-b border-dark-700/60 flex-wrap gap-3">
               <div>
-                <h3 className="text-base font-bold text-white">Project Development Team</h3>
-                <p className="text-xs text-gray-400">
-                  Maximum team size enforced server-side:{" "}
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-bold text-white">Project Development Team</h3>
+                  {isLeader && (
+                    <span className="badge badge-primary text-[10px] py-0.5 px-2">Team Leader</span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Recruitment active across proposal &amp; development:{" "}
                   <strong className="text-white">
-                    {project.teamMembers?.length || 0} / {project.maxTeamSize} Members
+                    {project.teamMembers?.length || 0} / {project.maxTeamSize || 5} Members
                   </strong>
                 </p>
               </div>
 
-              {user?.role === "DEVELOPER" && !isParticipant && ["OPEN", "LEADER_SELECTED", "TEAM_FORMING"].includes(project.status) && (
-                project.teamMembers?.length < project.maxTeamSize ? (
+              <div className="flex items-center gap-2 flex-wrap">
+                {(isLeader || isProvider || isAdmin) && (
                   <button
-                    onClick={() => setRequestModalOpen(true)}
-                    className="btn-primary btn-sm flex items-center gap-1.5"
+                    onClick={() => {
+                      setNewTeamSize(project.maxTeamSize || 5);
+                      setTeamSizeModalOpen(true);
+                      setTeamSizeError("");
+                    }}
+                    className="btn-secondary btn-sm flex items-center gap-1.5 text-xs"
+                    title="Decide or adjust team capacity"
                   >
-                    <FiPlus className="w-4 h-4" />
-                    <span>Request to Join Team</span>
+                    <FiUsers className="w-3.5 h-3.5 text-primary-400" />
+                    <span>{isLeader ? "Decide / Adjust Team Size" : "Adjust Team Capacity"}</span>
                   </button>
-                ) : (
-                  <span className="badge badge-neutral text-xs py-1 px-3">Team Capacity Reached</span>
-                )
-              )}
+                )}
+
+                {user?.role === "DEVELOPER" && !isParticipant && ["OPEN", "LEADER_SELECTED", "TEAM_FORMING", "PROPOSAL_PENDING", "CHANGES_REQUESTED", "APPROVED", "IN_DEVELOPMENT"].includes(project.status) && (
+                  project.teamMembers?.length < (project.maxTeamSize || 5) ? (
+                    <button
+                      onClick={() => setRequestModalOpen(true)}
+                      className="btn-primary btn-sm flex items-center gap-1.5"
+                    >
+                      <FiPlus className="w-4 h-4" />
+                      <span>Request to Join Team</span>
+                    </button>
+                  ) : (
+                    <span className="badge badge-neutral text-xs py-1 px-3">Team Capacity Reached</span>
+                  )
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1205,6 +1342,223 @@ const ProjectDetails = () => {
                 </div>
               ))}
             </div>
+
+            {/* INCOMING DEVELOPER JOIN REQUESTS (Team Leader / Provider / Admin) */}
+            {(isLeader || isProvider || isAdmin) && (
+              <div className="pt-6 border-t border-dark-700/60 space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-primary-500/10 border border-primary-500/20 flex items-center justify-center text-primary-400">
+                      <FiSend className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-bold text-white">Incoming Join Requests</h4>
+                        <span
+                          className={`badge text-[10px] py-0.5 px-2 ${
+                            pendingRequestsCount > 0 ? "badge-primary animate-pulse" : "badge-neutral"
+                          }`}
+                        >
+                          {pendingRequestsCount} Pending
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-400">
+                        {isLeader
+                          ? "Developers requesting to join your team. Review skills and application message to accept or decline."
+                          : "Review developer join applications for this project."}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={fetchProjectRequests}
+                    className="btn-secondary btn-sm text-xs flex items-center gap-1.5"
+                    title="Refresh join requests"
+                  >
+                    <FiRefreshCw className={`w-3.5 h-3.5 ${loadingRequests ? "animate-spin" : ""}`} />
+                    <span>Refresh</span>
+                  </button>
+                </div>
+
+                {loadingRequests ? (
+                  <div className="text-center py-6">
+                    <div className="spinner border-t-primary-500 mx-auto" />
+                  </div>
+                ) : projectRequests.length === 0 ? (
+                  <div className="bg-dark-900/40 rounded-xl p-6 text-center border border-dark-700/40">
+                    <p className="text-xs text-gray-400">No developer join requests yet.</p>
+                    <p className="text-[11px] text-gray-500 mt-1">
+                      Developers can send join requests throughout proposal and development until your team reaches capacity ({project.maxTeamSize || 5} members).
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {projectRequests.map((req) => {
+                      const dev = req.developer;
+                      const isPending = req.status === "PENDING";
+                      const isFull = (project.teamMembers?.length || 0) >= (project.maxTeamSize || 5);
+                      return (
+                        <div
+                          key={req._id}
+                          className={`bg-dark-900/90 border rounded-xl p-4 space-y-3 transition-all ${
+                            isPending
+                              ? "border-primary-500/40 hover:border-primary-500/60 shadow-glow-sm"
+                              : "border-dark-700/60 opacity-80"
+                          }`}
+                        >
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="avatar">
+                                {dev?.name?.charAt(0) || "D"}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <Link
+                                    to={`/developers/${dev?._id}`}
+                                    className="text-sm font-bold text-white hover:text-primary-400 transition"
+                                  >
+                                    {dev?.name || "Developer"}
+                                  </Link>
+                                  <span className="badge badge-accent text-[10px] py-0 px-2">
+                                    {dev?.reputation || 0} pts
+                                  </span>
+                                  <span
+                                    className={`badge text-[10px] py-0 px-2 ${
+                                      req.status === "ACCEPTED"
+                                        ? "badge-success"
+                                        : req.status === "REJECTED"
+                                        ? "badge-danger"
+                                        : "badge-warning"
+                                    }`}
+                                  >
+                                    {req.status}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-3 text-[11px] text-gray-400 mt-0.5 flex-wrap">
+                                  <span>Applied on {new Date(req.createdAt).toLocaleDateString()}</span>
+                                  {dev?.projectsCompleted !== undefined && (
+                                    <span>• {dev.projectsCompleted} completed</span>
+                                  )}
+                                  {dev?.githubProfile && (
+                                    <a
+                                      href={dev.githubProfile}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="text-primary-400 hover:underline flex items-center gap-1"
+                                    >
+                                      <FiGithub className="w-3 h-3" />
+                                      <span>GitHub</span>
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Actions for Leader / Provider / Admin */}
+                            {isPending && (
+                              <div className="flex items-center gap-2 self-end sm:self-center flex-shrink-0">
+                                {project.projectLeader ? (
+                                  /* Project already has a leader: ONLY the Team Leader (or Admin) can accept or decline */
+                                  isLeader || isAdmin ? (
+                                    <>
+                                      <button
+                                        onClick={() => handleAcceptJoinRequest(req._id)}
+                                        disabled={isFull || requestActionLoading[req._id] === "accept"}
+                                        className={`btn-primary btn-sm text-xs flex items-center gap-1.5 ${
+                                          isFull ? "opacity-50 cursor-not-allowed" : ""
+                                        }`}
+                                        title={
+                                          isFull
+                                            ? "Team capacity reached. Click 'Decide / Adjust Team Size' to increase capacity first."
+                                            : "Accept developer into team"
+                                        }
+                                      >
+                                        <FiCheck className="w-3.5 h-3.5" />
+                                        <span>
+                                          {requestActionLoading[req._id] === "accept"
+                                            ? "Accepting..."
+                                            : isFull
+                                            ? "Team Full"
+                                            : "Accept to Team"}
+                                        </span>
+                                      </button>
+                                      <button
+                                        onClick={() => handleRejectJoinRequest(req._id)}
+                                        disabled={requestActionLoading[req._id] === "reject"}
+                                        className="btn-secondary btn-sm text-xs text-rose-400 hover:text-rose-300 border-rose-500/30 hover:border-rose-500/60 flex items-center gap-1"
+                                        title="Decline request"
+                                      >
+                                        <FiX className="w-3.5 h-3.5" />
+                                        <span>
+                                          {requestActionLoading[req._id] === "reject" ? "Declining..." : "Decline"}
+                                        </span>
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <span
+                                      className="badge badge-neutral text-xs py-1 px-3 border border-dark-600"
+                                      title="Only the Team Leader can accept or decline team member requests"
+                                    >
+                                      Managed by Team Leader
+                                    </span>
+                                  )
+                                ) : (
+                                  /* No leader yet: Provider (or Admin) designates initial leader */
+                                  isProvider || isAdmin ? (
+                                    <>
+                                      <button
+                                        onClick={() => handleAcceptJoinRequest(req._id)}
+                                        disabled={requestActionLoading[req._id] === "accept"}
+                                        className="btn-primary btn-sm text-xs flex items-center gap-1.5"
+                                        title="Designate as Project Leader"
+                                      >
+                                        <FiCheck className="w-3.5 h-3.5" />
+                                        <span>
+                                          {requestActionLoading[req._id] === "accept" ? "Accepting..." : "Designate as Leader"}
+                                        </span>
+                                      </button>
+                                      <button
+                                        onClick={() => handleRejectJoinRequest(req._id)}
+                                        disabled={requestActionLoading[req._id] === "reject"}
+                                        className="btn-secondary btn-sm text-xs text-rose-400 hover:text-rose-300 border-rose-500/30 hover:border-rose-500/60 flex items-center gap-1"
+                                        title="Decline application"
+                                      >
+                                        <FiX className="w-3.5 h-3.5" />
+                                        <span>
+                                          {requestActionLoading[req._id] === "reject" ? "Declining..." : "Decline"}
+                                        </span>
+                                      </button>
+                                    </>
+                                  ) : null
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Message / Pitch */}
+                          {req.message && (
+                            <div className="bg-dark-800/80 rounded-lg p-3 text-xs text-gray-300 border border-dark-700/50">
+                              <p className="italic leading-relaxed">"{req.message}"</p>
+                            </div>
+                          )}
+
+                          {/* Skills */}
+                          {dev?.skills && dev.skills.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 pt-1">
+                              {dev.skills.map((skill, idx) => (
+                                <span key={idx} className="badge badge-neutral text-[10px] py-0 px-2">
+                                  {skill}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -2483,6 +2837,101 @@ const ProjectDetails = () => {
                   className="btn-primary btn-sm"
                 >
                   {submittingRequest ? "Submitting..." : "Send Request"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* DECIDE / ADJUST TEAM SIZE MODAL */}
+      {teamSizeModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content max-w-md space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-dark-700">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-primary-500/10 border border-primary-500/20 flex items-center justify-center text-primary-400">
+                  <FiUsers className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">
+                    {isLeader ? "Leader Team Size Decision" : "Adjust Team Capacity"}
+                  </h3>
+                  <p className="text-xs text-gray-400">Configure developer capacity for this project</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setTeamSizeModalOpen(false)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {teamSizeError && (
+              <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-lg text-xs flex items-center gap-2">
+                <FiAlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{teamSizeError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleUpdateTeamSize} className="space-y-4">
+              <div>
+                <label className="input-label text-xs mb-1 block">
+                  Maximum Team Size (Developers)
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    min={project.teamMembers?.length || 1}
+                    max={25}
+                    required
+                    value={newTeamSize}
+                    onChange={(e) => setNewTeamSize(e.target.value)}
+                    className="input-field text-sm font-semibold"
+                  />
+                  <span className="text-xs text-gray-400 whitespace-nowrap">
+                    Active: <strong className="text-white">{project.teamMembers?.length || 0}</strong>
+                  </span>
+                </div>
+                <p className="text-[11px] text-gray-400 mt-1.5 leading-relaxed">
+                  {isLeader
+                    ? "As the Team Leader, you can decide and adjust team capacity based on project scope, even if not provided by the Problem Provider."
+                    : "Configure maximum team capacity. Developers can send join requests until this limit is reached."}
+                </p>
+              </div>
+
+              <div className="bg-dark-900/60 rounded-xl p-3 border border-dark-700/60 space-y-1.5 text-xs text-gray-300">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Current active members:</span>
+                  <span className="font-semibold text-white">{project.teamMembers?.length || 0}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Open recruitment slots:</span>
+                  <span className="font-semibold text-emerald-400">
+                    {Math.max(0, (parseInt(newTeamSize, 10) || 0) - (project.teamMembers?.length || 0))}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Recruitment open during:</span>
+                  <span className="text-gray-200">Proposal &amp; Development phases</span>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setTeamSizeModalOpen(false)}
+                  className="btn-secondary btn-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updatingTeamSize}
+                  className="btn-primary btn-sm flex items-center gap-1.5"
+                >
+                  {updatingTeamSize ? "Saving..." : "Save Team Size"}
                 </button>
               </div>
             </form>

@@ -15,6 +15,8 @@ import {
   FiX,
   FiLayers,
   FiShield,
+  FiSend,
+  FiMail,
 } from "react-icons/fi";
 
 const Navbar = () => {
@@ -215,6 +217,20 @@ const Navbar = () => {
                               <FiUser className="w-4 h-4 text-accent-400" />
                               My Portfolio
                             </Link>
+                            <Link
+                              to="/developer/requests"
+                              className="flex items-center gap-2.5 px-4 py-2 text-xs text-gray-300 hover:text-white hover:bg-dark-700/50 transition"
+                            >
+                              <FiSend className="w-4 h-4 text-emerald-400" />
+                              Join &amp; Team Requests
+                            </Link>
+                            <Link
+                              to="/developer/invitations"
+                              className="flex items-center gap-2.5 px-4 py-2 text-xs text-gray-300 hover:text-white hover:bg-dark-700/50 transition"
+                            >
+                              <FiMail className="w-4 h-4 text-blue-400" />
+                              My Invitations
+                            </Link>
                           </>
                         )}
 
@@ -363,6 +379,18 @@ const Navbar = () => {
                     className="block px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-dark-800"
                   >
                     My Portfolio
+                  </Link>
+                  <Link
+                    to="/developer/requests"
+                    className="block px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-dark-800"
+                  >
+                    Join &amp; Team Requests
+                  </Link>
+                  <Link
+                    to="/developer/invitations"
+                    className="block px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-dark-800"
+                  >
+                    My Invitations
                   </Link>
                 </>
               )}

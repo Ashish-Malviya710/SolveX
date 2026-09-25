@@ -7,6 +7,7 @@ router.get("/:id", protect, teamController.getTeam);
 router.post("/:id/members", protect, authorize("DEVELOPER"), teamController.addMember);
 router.delete("/:id/members/:userId", protect, authorize("DEVELOPER"), teamController.removeMember);
 router.put("/:id/members/:userId/role", protect, authorize("DEVELOPER"), teamController.updateMemberRole);
+router.put("/:id/size", protect, teamController.updateTeamSize);
 
 // Backup Developer Matching
 router.put("/:id/members/:userId/vacant", protect, teamController.markMemberVacant);

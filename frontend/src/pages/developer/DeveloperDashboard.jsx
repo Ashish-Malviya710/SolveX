@@ -21,20 +21,24 @@ const DeveloperDashboard = () => {
   const [invitations, setInvitations] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const [incomingRequests, setIncomingRequests] = useState([]);
+
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        const [projRes, reqRes, invRes, openRes] = await Promise.all([
+        const [projRes, reqRes, invRes, openRes, incRes] = await Promise.all([
           api.get("/projects/my-projects"),
           api.get("/requests/my"),
           api.get("/invitations"),
           api.get("/projects?limit=4"),
+          api.get("/requests/incoming").catch(() => ({ data: { requests: [] } })),
         ]);
         setProjects(projRes.data.projects || []);
         setRequests(reqRes.data.requests || []);
         setInvitations(invRes.data.invitations || []);
         setRecruitingProjects(openRes.data.projects || []);
+        setIncomingRequests(incRes.data.requests || []);
       } catch (err) {
         console.error("Failed to load developer dashboard data:", err);
       } finally {
@@ -45,9 +49,36 @@ const DeveloperDashboard = () => {
   }, []);
 
   const pendingInvitationsCount = invitations.filter((i) => i.status === "PENDING").length;
+  const pendingIncomingCount = incomingRequests.filter((r) => r.status === "PENDING").length;
 
   return (
     <div className="page-container space-y-8">
+      {/* Alert banner for Team Leaders with pending join requests */}
+      {pendingIncomingCount > 0 && (
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-primary-500/20 via-accent-500/10 to-dark-800 border border-primary-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-glow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-primary-500/20 border border-primary-500/30 flex items-center justify-center text-primary-400 flex-shrink-0">
+              <FiUsers className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <span>{pendingIncomingCount} Developer Join {pendingIncomingCount === 1 ? "Request" : "Requests"} Pending</span>
+                <span className="badge badge-accent text-[10px] py-0 px-2 animate-pulse">Action Required</span>
+              </h3>
+              <p className="text-xs text-gray-300">
+                Developers have requested to join teams you lead. Review their skills and application message.
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/developer/requests"
+            className="btn-primary btn-sm text-xs flex items-center gap-1.5 self-start sm:self-center whitespace-nowrap"
+          >
+            <span>Review Applications</span>
+            <span>→</span>
+          </Link>
+        </div>
+      )}
       {/* Welcome & Stats Row */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

@@ -1,6 +1,7 @@
 const Project = require("../models/Project");
 const { analyzeProblem } = require("../services/groqService");
 const { normalizeGithubUrl } = require("../services/githubService");
+const { createNotification } = require("../services/notificationService");
 
 /**
  * POST /api/projects
@@ -56,6 +57,15 @@ exports.createProject = async (req, res) => {
     }
 
     const populated = await Project.findById(project._id).populate("problemProvider", "name email");
+
+    // Notify provider about successful project creation
+    await createNotification(
+      req.user._id,
+      "PROJECT_CREATED",
+      `📝 Your project "${title}" has been created as a draft. Publish it to make it visible to developers!`,
+      { projectId: project._id, projectTitle: title }
+    );
+
     res.status(201).json({ project: populated });
   } catch (err) {
     console.error("Create project error:", err);
@@ -259,6 +269,14 @@ exports.publishProject = async (req, res) => {
     project.status = "OPEN";
     await project.save();
 
+    // Notify provider that project is now live
+    await createNotification(
+      req.user._id,
+      "PROJECT_PUBLISHED",
+      `🚀 Your project "${project.title}" is now LIVE and open for developer applications!`,
+      { projectId: project._id, projectTitle: project.title }
+    );
+
     res.status(200).json({ project });
   } catch (err) {
     console.error("Publish project error:", err);
@@ -450,7 +468,9 @@ exports.getMyProjects = async (req, res) => {
 
     if (req.user.role === "PROBLEM_PROVIDER") {
       projects = await Project.find({ problemProvider: userId })
-        .populate("projectLeader", "name")
+        .populate("problemProvider", "name organizationName email avatar")
+        .populate("projectLeader", "name email githubProfile avatar")
+        .populate("teamMembers.user", "name role skills avatar githubProfile")
         .sort("-createdAt");
     } else {
       projects = await Project.find({
@@ -459,8 +479,9 @@ exports.getMyProjects = async (req, res) => {
           { "teamMembers.user": userId },
         ],
       })
-        .populate("problemProvider", "name")
-        .populate("projectLeader", "name")
+        .populate("problemProvider", "name organizationName email avatar")
+        .populate("projectLeader", "name email githubProfile avatar")
+        .populate("teamMembers.user", "name role skills avatar githubProfile")
         .sort("-createdAt");
     }
 

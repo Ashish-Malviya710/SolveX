@@ -9,6 +9,7 @@ const DeveloperInvitation = require("./models/DeveloperInvitation");
 const ProjectProposal = require("./models/ProjectProposal");
 const Message = require("./models/Message");
 const Notification = require("./models/Notification");
+const Team = require("./models/Team");
 
 async function seedDatabase() {
   try {
@@ -24,6 +25,7 @@ async function seedDatabase() {
     await ProjectProposal.deleteMany({});
     await Message.deleteMany({});
     await Notification.deleteMany({});
+    await Team.deleteMany({});
     console.log("Existing collections cleared.");
 
     // Helper for password hashing (since User model has pre-save hook, creating via User.create will hash passwords)
@@ -360,6 +362,271 @@ async function seedDatabase() {
       deadline: new Date(Date.now() + 50 * 86400000),
       status: "OPEN",
     });
+
+    // Project 5: COMPLETED (Led by Ashish Lohar - Education Tech)
+    const project5 = await Project.create({
+      title: "ShikshaSetu — Solar Digital Classroom & Regional Curriculum Mesh",
+      description: "Tribal and remote government schools in Palghar district face frequent power cuts and nonexistent cellular connectivity. We require an offline-first learning management system running on solar-powered mini servers that syncs local quiz logs and interactive lessons whenever network connectivity is intermittently detected.",
+      problemProvider: provider1._id,
+      projectLeader: dev1._id,
+      category: "Education & Digital Literacy",
+      requiredFeatures: "Offline PWA architecture, multi-lingual audio/video lessons, local teacher grading desk, delayed sync engine with conflict resolution",
+      preferredTechnologies: "React, Node.js, Express, MongoDB, Progressive Web Apps (PWA), Tailwind CSS",
+      requiredSkills: ["React", "Node.js", "PWA", "MongoDB", "Express.js", "Tailwind CSS"],
+      aiSummary: "A solar-compatible offline-first educational content mesh delivering uninterrupted curriculum modules and local performance analytics for rural educational institutions.",
+      aiSuggestedFeatures: [
+        "Interactive Offline Lesson Cache",
+        "Teacher Gradebook & Student Attendance Roster",
+        "Low-Bandwidth Satellite Sync Queue",
+        "Solar Battery State-of-Health Telemetry",
+      ],
+      aiSuggestedSkills: ["React", "Node.js", "PWA", "MongoDB"],
+      aiComplexity: "Complex",
+      teamMembers: [
+        { user: dev1._id, role: "Leader", customRole: "Lead System Architect" },
+        { user: dev4._id, role: "Contributor", customRole: "Curriculum & Interactive Content Lead" },
+        { user: dev5._id, role: "Contributor", customRole: "Frontend PWA Specialist" },
+      ],
+      maxTeamSize: 4,
+      budgetType: "Fixed",
+      budgetAmount: 55000,
+      currency: "INR",
+      budgetDescription: "Sponsored by philanthropic education grant for tribal development.",
+      expectedDuration: "45 Days",
+      deadline: new Date(Date.now() - 40 * 86400000),
+      githubRepoUrl: "https://github.com/solvex-teams/shiksha-setu-classroom",
+      liveUrl: "https://shikshasetu.solvex.org",
+      solution: {
+        completionSummary: "Successfully deployed lightweight PWA bundled into micro-servers across 18 tribal schools with automated periodic syncing and 100% offline lesson playback.",
+        liveUrl: "https://shikshasetu.solvex.org",
+        githubRepoUrl: "https://github.com/solvex-teams/shiksha-setu-classroom",
+        documentation: "https://github.com/solvex-teams/shiksha-setu-classroom/wiki",
+        screenshots: ["https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1200&q=80"],
+        demoVideo: "https://youtube.com/watch?v=sample-demo-shikshasetu",
+        notes: "Won CivicTech Innovation Award. Currently serving 4,200 active rural students daily.",
+        submittedAt: new Date(Date.now() - 48 * 86400000),
+      },
+      impact: {
+        peopleBenefited: 4200,
+        organizationsHelped: 18,
+        notes: "Zero lesson disruptions recorded over 6 months despite 140+ power outage hours in pilot schools.",
+      },
+      status: "COMPLETED",
+      completionDate: new Date(Date.now() - 45 * 86400000),
+    });
+
+    // Project 6: COMPLETED (Led by Ashish Lohar - Water Security IoT)
+    const project6 = await Project.create({
+      title: "JalDrishti — Ground Water Table IoT Sensor Telemetry & Alerts",
+      description: "Severe groundwater depletion threatens farming communities across Marathwada. Village panchayats need automated borewell water table depth sensing with real-time solar telemetry and SMS broadcast warnings to prevent catastrophic dry-outs.",
+      problemProvider: provider3._id,
+      projectLeader: dev1._id,
+      category: "Water Security & IoT Telemetry",
+      requiredFeatures: "Sensor telemetry ingestion pipeline, live water depth charting, automated SMS threshold alerts, historical aquifer drawdown visualizer",
+      preferredTechnologies: "React, Node.js, Express, Socket.io, MongoDB, Leaflet, Tailwind CSS",
+      requiredSkills: ["React", "Node.js", "Socket.io", "MongoDB", "Leaflet"],
+      aiSummary: "An environmental IoT water monitoring grid aggregating aquifer levels from ultrasonic borewell telemetry and generating proactive water rationing recommendations.",
+      aiSuggestedFeatures: [
+        "Live Sensor Telemetry Ingestion API",
+        "Geospatial Aquifer Heatmap & Depth Contours",
+        "Village Broadcast SMS Notification Daemon",
+        "Seasonal Drawdown & Recharge Projections",
+      ],
+      aiSuggestedSkills: ["React", "Node.js", "MongoDB", "Socket.io"],
+      aiComplexity: "Moderate",
+      teamMembers: [
+        { user: dev1._id, role: "Leader", customRole: "Full Stack & IoT Telemetry Lead" },
+        { user: dev2._id, role: "Contributor", customRole: "Data Visualization Specialist" },
+        { user: dev3._id, role: "Contributor", customRole: "Backend & Timeseries Ingestion Engineer" },
+      ],
+      maxTeamSize: 5,
+      budgetType: "Fixed",
+      budgetAmount: 70000,
+      currency: "INR",
+      budgetDescription: "Funded via State Water Conservation Trust.",
+      expectedDuration: "50 Days",
+      deadline: new Date(Date.now() - 85 * 86400000),
+      githubRepoUrl: "https://github.com/solvex-teams/jaldrishti-aquifer-monitor",
+      liveUrl: "https://jaldrishti.org",
+      solution: {
+        completionSummary: "Live telemetry dashboard deployed with 40 ultrasonic borewell probes operational. SMS gateway integrated with local telecom partners for farmer alerts.",
+        liveUrl: "https://jaldrishti.org",
+        githubRepoUrl: "https://github.com/solvex-teams/jaldrishti-aquifer-monitor",
+        documentation: "https://github.com/solvex-teams/jaldrishti-aquifer-monitor/wiki",
+        screenshots: ["https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1200&q=80"],
+        demoVideo: "https://youtube.com/watch?v=sample-demo-jaldrishti",
+        notes: "Pilot successfully prevented 3 borewell failures by issuing timely conservation alerts.",
+        submittedAt: new Date(Date.now() - 95 * 86400000),
+      },
+      impact: {
+        peopleBenefited: 28000,
+        organizationsHelped: 12,
+        notes: "Preserved 1.4 million liters of emergency drinking water across 12 village water committees during peak drought season.",
+      },
+      status: "COMPLETED",
+      completionDate: new Date(Date.now() - 90 * 86400000),
+    });
+
+    // Project 7: COMPLETED (Led by Priya Sharma - Maternal Healthcare)
+    const project7 = await Project.create({
+      title: "ArogyaDoot — Maternal Healthcare Nutrition & Vaccination Tracker",
+      description: "Maternal mortality rates remain high in underserved peri-urban settlements due to missed immunization dates and nutritional deficits. Community health clinics need a clean mobile web app to track high-risk pregnancies and send scheduled voice call reminders.",
+      problemProvider: provider2._id,
+      projectLeader: dev2._id,
+      category: "Healthcare & Nutrition",
+      requiredFeatures: "High-risk pregnancy risk scoring, immunization calendar generator, automated vernacular voice reminders, clinic visit logger",
+      preferredTechnologies: "React, Node.js, Express, MongoDB, Tailwind CSS, Twilio",
+      requiredSkills: ["React", "UI/UX Design", "Node.js", "MongoDB", "Tailwind CSS"],
+      aiSummary: "A patient-centric clinical registry and automated notification engine designed to ensure 100% adherence to prenatal checkups and child immunization calendars.",
+      aiSuggestedFeatures: [
+        "Patient Intake & Nutritional Risk Calculator",
+        "Automated Trimester Immunization Timeline",
+        "Multilingual Voice Reminder Scheduler",
+        "Clinic Attendance & Growth Chart Export",
+      ],
+      aiSuggestedSkills: ["React", "Node.js", "Tailwind CSS"],
+      aiComplexity: "Moderate",
+      teamMembers: [
+        { user: dev2._id, role: "Leader", customRole: "Frontend & Design System Lead" },
+        { user: dev3._id, role: "Contributor", customRole: "Backend & Scheduling Architect" },
+        { user: dev5._id, role: "Contributor", customRole: "Full Stack Contributor" },
+      ],
+      maxTeamSize: 4,
+      budgetType: "Fixed",
+      budgetAmount: 48000,
+      currency: "INR",
+      budgetDescription: "Funded by Community Health Action Council.",
+      expectedDuration: "35 Days",
+      deadline: new Date(Date.now() - 25 * 86400000),
+      githubRepoUrl: "https://github.com/solvex-teams/arogyadoot-maternal-health",
+      liveUrl: "https://arogyadoot.care",
+      solution: {
+        completionSummary: "Complete responsive web app with WCAG AA compliance, multilingual audio support, and automated reminder queues deployed for 15 health centers.",
+        liveUrl: "https://arogyadoot.care",
+        githubRepoUrl: "https://github.com/solvex-teams/arogyadoot-maternal-health",
+        documentation: "https://github.com/solvex-teams/arogyadoot-maternal-health/wiki",
+        screenshots: ["https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1200&q=80"],
+        notes: "Zero dropped reminder queue errors across 12,000 automated schedule dispatches.",
+        submittedAt: new Date(Date.now() - 32 * 86400000),
+      },
+      impact: {
+        peopleBenefited: 9500,
+        organizationsHelped: 15,
+        notes: "Increased on-time second-trimester immunization rates by 42% across pilot healthcare clusters.",
+      },
+      status: "COMPLETED",
+      completionDate: new Date(Date.now() - 30 * 86400000),
+    });
+
+    // Project 8: COMPLETED (Led by Ananya Iyer - Agritech AI)
+    const project8 = await Project.create({
+      title: "KrishiMitra — Crop Disease Vision AI Diagnostics & Price Discovery",
+      description: "Smallholder farmers suffer devastating yield losses from crop blight and lack fair local market rate transparency. We need a fast progressive web app where farmers can photograph diseased crop leaves to get instant pest remedies and check daily APMC mandi prices.",
+      problemProvider: provider1._id,
+      projectLeader: dev4._id,
+      category: "Agritech & AI for Good",
+      requiredFeatures: "Camera photo leaf lesion analysis, disease treatment remedies in regional languages, live wholesale commodity market prices, offline remedy caching",
+      preferredTechnologies: "FastAPI, Python, React, Groq AI, Tailwind CSS, MongoDB",
+      requiredSkills: ["FastAPI", "Python", "React", "Groq AI", "Tailwind CSS", "MongoDB"],
+      aiSummary: "An edge-accessible agro-intelligence web platform utilizing computer vision models to diagnose crop pathogen outbreaks and empower farmers with fair trade market price intelligence.",
+      aiSuggestedFeatures: [
+        "Instant Leaf Disease Identification Camera Flow",
+        "Organic & Chemical Remedy Prescriptions in Regional Dialects",
+        "Daily Mandi Wholesale Price Index",
+        "Farmer Peer Community Discussion Wall",
+      ],
+      aiSuggestedSkills: ["Python", "React", "Groq AI", "Tailwind CSS"],
+      aiComplexity: "Complex",
+      teamMembers: [
+        { user: dev4._id, role: "Leader", customRole: "AI / ML & Full Stack Lead" },
+        { user: dev1._id, role: "Contributor", customRole: "System Architecture Advisor" },
+        { user: dev5._id, role: "Contributor", customRole: "Frontend UI Contributor" },
+      ],
+      maxTeamSize: 4,
+      budgetType: "Fixed",
+      budgetAmount: 65000,
+      currency: "INR",
+      budgetDescription: "National Agro-Innovation Grant stipend.",
+      expectedDuration: "45 Days",
+      deadline: new Date(Date.now() - 20 * 86400000),
+      githubRepoUrl: "https://github.com/solvex-teams/krishimitra-agro-ai",
+      liveUrl: "https://krishimitra-agro.org",
+      solution: {
+        completionSummary: "Integrated computer vision diagnostics trained on 24 common South Asian crop leaf diseases with sub-second inference via Groq AI Llama vision models and mandi price caching.",
+        liveUrl: "https://krishimitra-agro.org",
+        githubRepoUrl: "https://github.com/solvex-teams/krishimitra-agro-ai",
+        documentation: "https://github.com/solvex-teams/krishimitra-agro-ai/wiki",
+        screenshots: ["https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&w=1200&q=80"],
+        demoVideo: "https://youtube.com/watch?v=sample-demo-krishimitra",
+        notes: "Supported by regional agricultural universities with validated remedy datasets.",
+        submittedAt: new Date(Date.now() - 26 * 86400000),
+      },
+      impact: {
+        peopleBenefited: 8200,
+        organizationsHelped: 9,
+        notes: "Helped over 8,000 farmers prevent tomato early blight and cotton leaf curl disease damage during monsoon planting season.",
+      },
+      status: "COMPLETED",
+      completionDate: new Date(Date.now() - 25 * 86400000),
+    });
+
+    // Seed Team Documents for projects
+    await Team.create([
+      {
+        projectId: project1._id,
+        leaderId: dev1._id,
+        members: [
+          { userId: dev1._id, role: "Leader", customRole: "Lead System Architect", status: "ACTIVE" },
+          { userId: dev2._id, role: "Contributor", customRole: "UI/UX & Frontend Lead", status: "ACTIVE" },
+          { userId: dev3._id, role: "Contributor", customRole: "Backend & Database Lead", status: "ACTIVE" },
+        ],
+      },
+      {
+        projectId: project2._id,
+        leaderId: dev3._id,
+        members: [
+          { userId: dev3._id, role: "Leader", customRole: "Backend & Systems Lead", status: "ACTIVE" },
+          { userId: dev2._id, role: "Contributor", customRole: "Accessible UI Lead", status: "ACTIVE" },
+          { userId: dev4._id, role: "Contributor", customRole: "AI Diagnostic Assistant Lead", status: "ACTIVE" },
+        ],
+      },
+      {
+        projectId: project5._id,
+        leaderId: dev1._id,
+        members: [
+          { userId: dev1._id, role: "Leader", customRole: "Lead System Architect", status: "ACTIVE" },
+          { userId: dev4._id, role: "Contributor", customRole: "Curriculum & Interactive Content Lead", status: "ACTIVE" },
+          { userId: dev5._id, role: "Contributor", customRole: "Frontend PWA Specialist", status: "ACTIVE" },
+        ],
+      },
+      {
+        projectId: project6._id,
+        leaderId: dev1._id,
+        members: [
+          { userId: dev1._id, role: "Leader", customRole: "Full Stack & IoT Telemetry Lead", status: "ACTIVE" },
+          { userId: dev2._id, role: "Contributor", customRole: "Data Visualization Specialist", status: "ACTIVE" },
+          { userId: dev3._id, role: "Contributor", customRole: "Backend & Timeseries Ingestion Engineer", status: "ACTIVE" },
+        ],
+      },
+      {
+        projectId: project7._id,
+        leaderId: dev2._id,
+        members: [
+          { userId: dev2._id, role: "Leader", customRole: "Frontend & Design System Lead", status: "ACTIVE" },
+          { userId: dev3._id, role: "Contributor", customRole: "Backend & Scheduling Architect", status: "ACTIVE" },
+          { userId: dev5._id, role: "Contributor", customRole: "Full Stack Contributor", status: "ACTIVE" },
+        ],
+      },
+      {
+        projectId: project8._id,
+        leaderId: dev4._id,
+        members: [
+          { userId: dev4._id, role: "Leader", customRole: "AI / ML & Full Stack Lead", status: "ACTIVE" },
+          { userId: dev1._id, role: "Contributor", customRole: "System Architecture Advisor", status: "ACTIVE" },
+          { userId: dev5._id, role: "Contributor", customRole: "Frontend UI Contributor", status: "ACTIVE" },
+        ],
+      },
+    ]);
 
     // 5. Create Developer Requests & Invitations
     const req1 = await DeveloperRequest.create({

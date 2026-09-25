@@ -2,6 +2,12 @@ const Groq = require("groq-sdk");
 const axios = require("axios");
 
 const MAX_DISCOVERY_TURNS = 7;
+const MIN_DISCOVERY_TURNS = 5; // Minimum questions before allowing "ready" status
+
+// Faster model specifically for quick question generation (small JSON responses)
+const FAST_QUESTION_MODEL = "llama-3.1-8b-instant";
+// Higher-quality model for blueprint generation (large structured output)
+const BLUEPRINT_MODEL_FALLBACK = "llama-3.3-70b-versatile";
 
 /**
  * Safely parse JSON from LLM response text or object.
@@ -30,20 +36,21 @@ function safeParseJson(data) {
 /**
  * Call Groq official API if GROQ_API_KEY is configured in backend/.env.
  */
-async function callGroqChat(prompt, systemPrompt, maxTokens = 2500) {
+async function callGroqChat(prompt, systemPrompt, maxTokens = 2500, modelOverride = null) {
   if (!process.env.GROQ_API_KEY || process.env.GROQ_API_KEY.trim() === "") {
     return null;
   }
 
   try {
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY.trim() });
+    const model = modelOverride || process.env.GROQ_MODEL || BLUEPRINT_MODEL_FALLBACK;
     const chatCompletion = await groq.chat.completions.create({
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: prompt },
       ],
-      model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
-      temperature: 0.7,
+      model,
+      temperature: maxTokens <= 1000 ? 0.5 : 0.7, // Lower temperature for faster, deterministic question gen
       max_tokens: maxTokens,
       response_format: { type: "json_object" },
     });
@@ -59,13 +66,13 @@ async function callGroqChat(prompt, systemPrompt, maxTokens = 2500) {
 /**
  * Call Pollinations AI fallback via reliable GET/POST request.
  */
-async function callOnlineLLMJson(promptText, systemPrompt = "") {
+async function callOnlineLLMJson(promptText, systemPrompt = "", timeoutMs = 25000) {
   try {
     const combined = `${systemPrompt}\n\nStrict instruction: Return ONLY raw JSON without markdown formatting or code blocks.\n\n${promptText}`;
     const encoded = encodeURIComponent(combined.substring(0, 4000));
     const url = `https://text.pollinations.ai/${encoded}?json=true`;
     const res = await axios.get(url, {
-      timeout: 25000,
+      timeout: timeoutMs,
       headers: {
         "User-Agent": "SolveX-Platform/2.0",
         Accept: "application/json, text/plain",
@@ -75,6 +82,81 @@ async function callOnlineLLMJson(promptText, systemPrompt = "") {
     return safeParseJson(res.data);
   } catch (err) {
     console.warn("Online LLM pipeline notice:", err.message);
+    return null;
+  }
+}
+
+/**
+ * Race multiple AI providers in parallel for fastest question generation.
+ * Returns the first successful result, or null if all fail.
+ */
+async function raceForQuestion(prompt, systemPrompt, maxTokens = 800) {
+  const providers = [];
+
+  // Provider 1: Groq with fast model
+  if (process.env.GROQ_API_KEY && process.env.GROQ_API_KEY.trim() !== "") {
+    providers.push(
+      callGroqChat(prompt, systemPrompt, maxTokens, FAST_QUESTION_MODEL)
+        .then(r => (r && r.question) ? r : null)
+    );
+  }
+
+  // Provider 2: Pollinations with tight timeout
+  providers.push(
+    callOnlineLLMJson(prompt, systemPrompt, 12000)
+      .then(r => (r && r.question) ? r : null)
+  );
+
+  if (providers.length === 0) return null;
+
+  // Race: return the first successful non-null result immediately
+  try {
+    // Promise.any resolves as soon as any promise fulfills with a truthy value
+    const result = await Promise.any(
+      providers.map(p => p.then(r => {
+        if (r) return r;
+        throw new Error("null result"); // Reject so Promise.any skips it
+      }))
+    );
+    return result;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Race multiple AI providers in parallel for fastest blueprint generation.
+ * Returns the first successful result with a valid blueprint, or null if all fail.
+ */
+async function raceFoBlueprintResult(prompt, systemPrompt, maxTokens = 2500) {
+  const providers = [];
+
+  // Provider 1: Groq with fast model
+  if (process.env.GROQ_API_KEY && process.env.GROQ_API_KEY.trim() !== "") {
+    providers.push(
+      callGroqChat(prompt, systemPrompt, maxTokens, FAST_QUESTION_MODEL)
+        .then(r => (r && r.overview) ? r : null)
+    );
+  }
+
+  // Provider 2: Pollinations with tight timeout
+  providers.push(
+    callOnlineLLMJson(prompt, systemPrompt, 15000)
+      .then(r => (r && r.overview) ? r : null)
+  );
+
+  if (providers.length === 0) return null;
+
+  // Race: return the first successful non-null result immediately
+  try {
+    const result = await Promise.any(
+      providers.map(p => p.then(r => {
+        if (r) return r;
+        throw new Error("null result");
+      }))
+    );
+    return result;
+  } catch {
     return null;
   }
 }
@@ -126,64 +208,48 @@ function getBlueprintLanguageInstruction(language = "en") {
 function buildDiscoveryQuestionPrompt({ initialIdea, conversation, collectedRequirements, turn, language = "en" }) {
   const languageDirective = getLanguageInstruction(language);
 
-  const systemPrompt = `You are an expert software product analyst and principal solution architect at SolveX.
-Your task is to conduct an interactive discovery session with a Problem Provider (e.g. NGO, social entrepreneur, or community leader) who has a project idea.
+  // Compact system prompt — optimized for speed (smaller model, fewer tokens)
+  const systemPrompt = `You are an expert software product analyst at SolveX.
+Conduct a discovery session with a Problem Provider who has a project idea.
 
 ${languageDirective}
 
-You must analyze their initial idea, prior questions, and user answers to:
-1. Identify critical missing dimensions of the project (e.g. target users, core workflow, monetization/pricing, integrations, notifications, technical scale, mobile vs web).
-2. Formulate ONE highly relevant, adaptive question tailored strictly to this project domain in the specified TARGET LANGUAGE.
-3. Decide appropriate question type: "single_choice", "multiple_choice", "text", "textarea", "boolean", or "number". If "single_choice" or "multiple_choice", provide 3-5 realistic options in the TARGET LANGUAGE plus "Other" (or "अन्य / Other").
-4. Evaluate readiness score (0 to 100) indicating how complete the specification is. If readiness >= 80 or turn >= ${MAX_DISCOVERY_TURNS}, mark status "ready".
-5. Update collected internal requirements based on all information available.
+Analyze their idea and answers to:
+1. Identify ONE critical missing dimension (target users, workflow, monetization, integrations, scale, platform).
+2. Formulate ONE adaptive question in the TARGET LANGUAGE.
+3. Pick question type: "single_choice", "multiple_choice", "text", "boolean", or "number". For choice types, provide 3-4 options.
+4. Evaluate readiness (0-100). If >= 80 or turn >= ${MAX_DISCOVERY_TURNS}, set status "ready".
 
-CRITICAL RULES:
-- The question MUST be specific to their domain and generated in the requested TARGET LANGUAGE.
-- Keep technical terms (React, Node.js, MongoDB, API, JWT, GitHub, REST, Socket.IO) in English alphabet.
-- Never ask a question that has already been answered.
-- Return ONLY valid JSON matching the exact schema below.`;
+Rules: Question must be domain-specific. Keep tech terms in English. Never repeat answered questions. Return ONLY valid JSON.`;
 
-  const previousDialogue = conversation
+  // Only include last 6 conversation entries to keep prompt small and fast
+  const recentConversation = conversation.slice(-6);
+  const previousDialogue = recentConversation
     .filter((c) => c.content)
-    .map((c) => `${c.role.toUpperCase()} (${c.type}): ${c.content}`)
+    .map((c) => `${c.role.toUpperCase()}: ${c.content}`)
     .join("\n");
 
-  const prompt = `SELECTED LANGUAGE: ${language.toUpperCase()}
-
-INITIAL PROJECT IDEA:
-"${initialIdea}"
-
-CONVERSATION HISTORY SO FAR:
-${previousDialogue || "No previous questions yet. This is turn 1."}
-
-CURRENT KNOWN REQUIREMENTS:
-${JSON.stringify(collectedRequirements || {}, null, 2)}
-
-CURRENT TURN: ${turn} of max ${MAX_DISCOVERY_TURNS}
-
-Generate the analysis and next question in the TARGET LANGUAGE in this exact JSON format:
-{
-  "status": "needs_more_information", // or "ready" if enough details exist to build a complete engineering blueprint
-  "readinessScore": 35, // integer 0-100 reflecting specification maturity
-  "reason": "Brief reason in target language why this question is being asked or why we are ready",
-  "updatedRequirements": {
-    "projectGoal": "Summary of primary goal",
-    "targetUsers": ["User group 1", "User group 2"],
-    "userRoles": ["Role 1", "Role 2"],
-    "features": ["Discovered feature 1", "Discovered feature 2"],
-    "technologyPreferences": [],
-    "constraints": []
-  },
-  "question": {
-    "id": "q_${turn}",
-    "text": "The dynamic question text specifically tailored to their domain in TARGET LANGUAGE",
-    "type": "single_choice", // "single_choice" | "multiple_choice" | "text" | "textarea" | "boolean" | "number"
-    "options": ["Option A", "Option B", "Option C", "Other / Custom"],
-    "required": true,
-    "reason": "Why this info is necessary for system architecture in TARGET LANGUAGE"
+  // Compact requirements — only send non-empty fields
+  const compactReqs = {};
+  if (collectedRequirements) {
+    for (const [k, v] of Object.entries(collectedRequirements)) {
+      if (v && (typeof v !== 'object' || (Array.isArray(v) ? v.length > 0 : Object.keys(v).length > 0))) {
+        compactReqs[k] = v;
+      }
+    }
   }
-}`;
+
+  const prompt = `LANG: ${language.toUpperCase()} | TURN: ${turn}/${MAX_DISCOVERY_TURNS}
+
+IDEA: "${initialIdea}"
+
+HISTORY:
+${previousDialogue || "Turn 1 — no prior questions."}
+
+REQS: ${Object.keys(compactReqs).length > 0 ? JSON.stringify(compactReqs) : "{}"}
+
+Return JSON:
+{"status":"needs_more_information","readinessScore":35,"reason":"brief reason","updatedRequirements":{"projectGoal":"","targetUsers":[],"features":[],"technologyPreferences":[]},"question":{"id":"q_${turn}","text":"question","type":"single_choice","options":["A","B","C","Other"],"required":true,"reason":"why needed"}}`;
 
   return { systemPrompt, prompt };
 }
@@ -205,8 +271,8 @@ function synthesizeDomainDiscoveryQuestion(initialIdea, conversation, collectedR
   const hasAsked = (keyword) => askedQuestions.some((q) => q.includes(keyword));
 
   let question;
-  let status = turn >= 4 ? "ready" : "needs_more_information";
-  let readinessScore = Math.min(15 + turn * 22, 90);
+  let status = turn > MIN_DISCOVERY_TURNS ? "ready" : "needs_more_information";
+  let readinessScore = Math.min(15 + turn * 18, turn > MIN_DISCOVERY_TURNS ? 90 : 75);
 
   if (!hasAsked("target user") && !hasAsked("who will use") && turn === 1) {
     if (ideaLower.includes("farmer") || ideaLower.includes("agri")) {
@@ -315,103 +381,35 @@ function synthesizeDomainDiscoveryQuestion(initialIdea, conversation, collectedR
 function buildBlueprintPrompt({ initialIdea, conversation, collectedRequirements, language = "en" }) {
   const languageDirective = getBlueprintLanguageInstruction(language);
 
-  const systemPrompt = `You are a Principal Software Architect and Solutions Engineer at SolveX.
-Generate a COMPLETE, UNIQUE, PRODUCTION-READY SOFTWARE PROJECT BLUEPRINT.
-The blueprint must be strictly tailored to the user's project idea, conversation history, and gathered requirements.
+  const systemPrompt = `You are a Principal Software Architect at SolveX. Generate a COMPLETE, UNIQUE, PRODUCTION-READY SOFTWARE PROJECT BLUEPRINT tailored to the user's idea and discovery answers.
 
 ${languageDirective}
 
-Do NOT use generic boilerplate. Synthesize an authentic, domain-specific architecture.
+Return strictly a JSON object with these keys:
+title, overview (2-3 paragraphs), problemStatement, objectives[], targetUsers[], userRoles[{role,description}], userFlows[{flowName,steps[]}], functionalRequirements[], nonFunctionalRequirements[], features:{core[],advanced[]}, technology:{frontend[],backend[],database[],authentication[],realtime[],deployment[],userPreferences[],aiRecommendations[]}, architecture:{type,description}, apiRequirements[{endpoint,method,purpose}], databaseRequirements[{collection,keyFields[]}], securityRequirements[], integrations[], developerRoles[{role,skills[],responsibilities[]}], requiredSkills[], modules[{name,scope}], milestones[{title,duration,deliverables[]}], testingRequirements[], deploymentRequirements[], risks[], assumptions[], openQuestions[], complexity("Simple"/"Moderate"/"Complex")
 
-Return strictly a JSON object with this exact structure:
-{
-  "title": "Clear, professional project title in selected language",
-  "overview": "Comprehensive 2-3 paragraph overview of the software product in selected language",
-  "problemStatement": "Detailed description of the core problem, existing operational bottlenecks, and affected stakeholders in selected language",
-  "objectives": ["Specific objective 1", "Specific objective 2", "Specific objective 3"],
-  "targetUsers": ["Target user demographic 1", "Target user demographic 2"],
-  "userRoles": [
-    { "role": "Role Name", "description": "Responsibilities and capabilities on the platform" }
-  ],
-  "userFlows": [
-    { "flowName": "Primary Onboarding & Action", "steps": ["Step 1", "Step 2", "Step 3"] }
-  ],
-  "functionalRequirements": ["FR1: ...", "FR2: ...", "FR3: ...", "FR4: ..."],
-  "nonFunctionalRequirements": ["Scalability: ...", "Performance: ...", "Security: ..."],
-  "features": {
-    "core": ["Core feature 1 with rationale", "Core feature 2 with rationale", "Core feature 3 with rationale"],
-    "advanced": ["Advanced feature 1", "Advanced feature 2"]
-  },
-  "technology": {
-    "frontend": ["React", "Tailwind CSS", "Vite/Axios"],
-    "backend": ["Node.js", "Express.js"],
-    "database": ["MongoDB / Mongoose"],
-    "authentication": ["JWT", "Bcrypt"],
-    "realtime": ["Socket.IO (if required)"],
-    "deployment": ["Docker", "Render / AWS"],
-    "userPreferences": ["Technologies user requested or None specified"],
-    "aiRecommendations": ["Key architectural tech choices with rationale"]
-  },
-  "architecture": {
-    "type": "Client-Server Monolith / Microservices / Event-Driven",
-    "description": "Clear architectural narrative describing data flow, API layer, and state management"
-  },
-  "apiRequirements": [
-    { "endpoint": "/api/...", "method": "POST", "purpose": "..." }
-  ],
-  "databaseRequirements": [
-    { "collection": "CollectionName", "keyFields": ["field1", "field2", "field3"] }
-  ],
-  "securityRequirements": ["CORS policy", "JWT token expiry", "Input sanitization"],
-  "integrations": ["Payment gateway, SMS, Maps, or external APIs tailored to the problem"],
-  "developerRoles": [
-    {
-      "role": "Frontend Specialist",
-      "skills": ["React", "Tailwind CSS", "State Management", "Responsive UI"],
-      "responsibilities": ["Develop user-facing screens", "Integrate REST APIs"]
-    },
-    {
-      "role": "Backend Architect",
-      "skills": ["Node.js", "Express.js", "MongoDB", "REST APIs", "JWT"],
-      "responsibilities": ["Implement database models", "Design and secure endpoints"]
-    }
-  ],
-  "requiredSkills": ["React", "Node.js", "Express.js", "MongoDB", "Tailwind CSS"],
-  "modules": [
-    { "name": "Authentication & Access Control", "scope": "..." },
-    { "name": "Core Domain Engine", "scope": "..." }
-  ],
-  "milestones": [
-    { "title": "Phase 1: Architecture & Scaffolding", "duration": "10 Days", "deliverables": ["Data models", "Auth setup"] },
-    { "title": "Phase 2: Core Workflows & Logic", "duration": "15 Days", "deliverables": ["Main user actions", "API integration"] },
-    { "title": "Phase 3: Integration & Testing", "duration": "10 Days", "deliverables": ["Security audit", "Third-party APIs"] },
-    { "title": "Phase 4: Deployment & Handover", "duration": "5 Days", "deliverables": ["CI/CD", "Documentation"] }
-  ],
-  "testingRequirements": ["Unit tests with Jest", "Integration testing for critical endpoints"],
-  "deploymentRequirements": ["Environment configuration", "Database indexing"],
-  "risks": ["Potential operational or technical risk 1", "Risk 2"],
-  "assumptions": ["Key operational assumption 1", "Assumption 2"],
-  "openQuestions": ["Unresolved question 1"],
-  "complexity": "Moderate" // "Simple", "Moderate", or "Complex"
-}`;
+Do NOT use generic boilerplate. Be domain-specific and authentic.`;
 
-  const dialogue = conversation
+  // Only include last 10 conversation entries to keep prompt compact
+  const recentConversation = conversation.slice(-10);
+  const dialogue = recentConversation
     .filter((c) => c.content)
     .map((c) => `${c.role.toUpperCase()}: ${c.content}`)
     .join("\n");
 
-  const prompt = `SELECTED BLUEPRINT LANGUAGE: ${language.toUpperCase()}
+  // Compact requirements
+  const compactReqs = JSON.stringify(collectedRequirements || {});
 
-PROJECT IDEA:
-"${initialIdea}"
+  const prompt = `LANG: ${language.toUpperCase()}
 
-FULL DISCOVERY INTERVIEW & ANSWERS:
+IDEA: "${initialIdea}"
+
+DISCOVERY Q&A:
 ${dialogue}
 
-COLLECTED REQUIREMENTS SO FAR:
-${JSON.stringify(collectedRequirements || {}, null, 2)}
+REQS: ${compactReqs}
 
-Generate the complete, unique, structured JSON blueprint in ${language.toUpperCase()} now.`;
+Generate the complete JSON blueprint now.`;
 
   return { systemPrompt, prompt };
 }
@@ -655,15 +653,10 @@ exports.startDiscoverySession = async ({ initialIdea, userId, language = "en" })
     language,
   });
 
-  // 1. Try Groq official API
-  let aiResponse = await callGroqChat(prompt, systemPrompt);
+  // Race all AI providers in parallel for fastest response
+  let aiResponse = await raceForQuestion(prompt, systemPrompt, 800);
 
-  // 2. Try Online LLM Fallback
-  if (!aiResponse || !aiResponse.question) {
-    aiResponse = await callOnlineLLMJson(prompt, systemPrompt);
-  }
-
-  // 3. Fallback to domain synthesis if both unavailable
+  // Fallback to instant domain synthesis if all providers fail
   if (!aiResponse || !aiResponse.question) {
     aiResponse = synthesizeDomainDiscoveryQuestion(cleanIdea, [], {}, 1);
   }
@@ -729,8 +722,8 @@ exports.processAnswerAndNextQuestion = async ({
     },
   ];
 
-  // If maximum turns reached, finalize readiness
-  if (nextTurn >= MAX_DISCOVERY_TURNS) {
+  // If maximum turns reached AND minimum questions met, finalize readiness
+  if (nextTurn >= MAX_DISCOVERY_TURNS && nextTurn > MIN_DISCOVERY_TURNS) {
     return {
       status: "ready",
       readinessScore: 95,
@@ -753,11 +746,10 @@ exports.processAnswerAndNextQuestion = async ({
     language,
   });
 
-  // Call AI
-  let aiResponse = await callGroqChat(prompt, systemPrompt);
-  if (!aiResponse || !aiResponse.question) {
-    aiResponse = await callOnlineLLMJson(prompt, systemPrompt);
-  }
+  // Race all AI providers in parallel for fastest response
+  let aiResponse = await raceForQuestion(prompt, systemPrompt, 800);
+
+  // Instant fallback to domain synthesis if all providers fail
   if (!aiResponse || !aiResponse.question) {
     aiResponse = synthesizeDomainDiscoveryQuestion(
       initialIdea,
@@ -767,7 +759,8 @@ exports.processAnswerAndNextQuestion = async ({
     );
   }
 
-  const isReady = aiResponse.status === "ready" || aiResponse.readinessScore >= 80;
+  // Only allow "ready" status if minimum 5 questions have been asked
+  const isReady = nextTurn > MIN_DISCOVERY_TURNS && (aiResponse.status === "ready" || aiResponse.readinessScore >= 80);
 
   if (isReady) {
     return {
@@ -831,10 +824,8 @@ exports.regenerateCurrentQuestionInLanguage = async ({
     language,
   });
 
-  let aiResponse = await callGroqChat(prompt, systemPrompt);
-  if (!aiResponse || !aiResponse.question) {
-    aiResponse = await callOnlineLLMJson(prompt, systemPrompt);
-  }
+  // Race providers for fastest language regeneration
+  let aiResponse = await raceForQuestion(prompt, systemPrompt, 800);
   if (!aiResponse || !aiResponse.question) {
     aiResponse = synthesizeDomainDiscoveryQuestion(
       initialIdea,
@@ -858,11 +849,8 @@ exports.generateBlueprint = async ({ initialIdea, conversation, collectedRequire
     language,
   });
 
-  let blueprint = await callGroqChat(prompt, systemPrompt, 3500);
-
-  if (!blueprint || !blueprint.overview || !blueprint.developerRoles) {
-    blueprint = await callOnlineLLMJson(prompt, systemPrompt);
-  }
+  // Race Groq and Pollinations in parallel for fastest blueprint generation
+  let blueprint = await raceFoBlueprintResult(prompt, systemPrompt, 2500);
 
   if (!blueprint || !blueprint.overview || !blueprint.developerRoles) {
     blueprint = synthesizeDomainBlueprint(initialIdea, conversation, collectedRequirements);
@@ -884,23 +872,13 @@ exports.generateBlueprint = async ({ initialIdea, conversation, collectedRequire
  * Service API: Revise an existing blueprint based on user instructions.
  */
 exports.reviseBlueprint = async ({ currentBlueprint, instruction }) => {
-  const systemPrompt = `You are a Principal Software Architect.
-Revise the following software blueprint based on the user's specific instruction: "${instruction}".
-Modify ONLY the sections affected by the instruction. Preserve existing confirmed requirements and technical consistency.
-Return strictly a valid JSON object matching the blueprint schema.`;
+  const systemPrompt = `You are a Principal Software Architect. Revise the blueprint based on: "${instruction}". Modify ONLY affected sections. Preserve existing requirements. Return valid JSON.`;
 
-  const prompt = `CURRENT BLUEPRINT:
-${JSON.stringify(currentBlueprint, null, 2)}
+  // Compact blueprint JSON (no pretty-printing) to reduce prompt size
+  const prompt = `BLUEPRINT: ${JSON.stringify(currentBlueprint)}\n\nREVISION: "${instruction}"\n\nOutput revised JSON now.`;
 
-USER REVISION INSTRUCTION:
-"${instruction}"
-
-Output the revised blueprint JSON now.`;
-
-  let revised = await callGroqChat(prompt, systemPrompt, 3500);
-  if (!revised || !revised.overview) {
-    revised = await callOnlineLLMJson(prompt, systemPrompt);
-  }
+  // Race providers for fastest revision
+  let revised = await raceFoBlueprintResult(prompt, systemPrompt, 2500);
 
   if (!revised || !revised.overview) {
     // Graceful fallback: append instruction to notes/overview

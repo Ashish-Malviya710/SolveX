@@ -12,8 +12,18 @@ exports.createRequest = async (req, res) => {
     const project = await Project.findById(req.params.id);
     if (!project) return res.status(404).json({ message: "Project not found" });
 
-    // Allow requests during OPEN, LEADER_SELECTED, and TEAM_FORMING stages
-    if (!["OPEN", "LEADER_SELECTED", "TEAM_FORMING"].includes(project.status)) {
+    // Allow requests as long as the project is active and team is not full
+    // (OPEN, LEADER_SELECTED, TEAM_FORMING, PROPOSAL_PENDING, CHANGES_REQUESTED, APPROVED, IN_DEVELOPMENT)
+    const allowedStatuses = [
+      "OPEN",
+      "LEADER_SELECTED",
+      "TEAM_FORMING",
+      "PROPOSAL_PENDING",
+      "CHANGES_REQUESTED",
+      "APPROVED",
+      "IN_DEVELOPMENT",
+    ];
+    if (!allowedStatuses.includes(project.status)) {
       return res.status(400).json({ message: "This project is currently not accepting new requests." });
     }
 
@@ -53,7 +63,8 @@ exports.createRequest = async (req, res) => {
       ? `${req.user.name} requested to join your team for "${project.title}"`
       : `${req.user.name} has requested to solve & lead "${project.title}"`;
 
-    // Notify Project Leader if assigned, otherwise Problem Provider
+    // If leader already exists, notify ONLY the Project Leader!
+    // If no leader yet, notify the Problem Provider.
     if (project.projectLeader) {
       await createNotification(
         project.projectLeader,
@@ -61,8 +72,7 @@ exports.createRequest = async (req, res) => {
         notificationText,
         { projectId: project._id, requestId: request._id }
       );
-    }
-    if (project.problemProvider && (!project.projectLeader || project.problemProvider.toString() !== project.projectLeader.toString())) {
+    } else if (project.problemProvider) {
       await createNotification(
         project.problemProvider,
         "NEW_DEVELOPER_REQUEST",
@@ -93,8 +103,8 @@ exports.getProjectRequests = async (req, res) => {
     if (!project) return res.status(404).json({ message: "Project not found" });
 
     const userId = req.user._id.toString();
-    const isProvider = project.problemProvider.toString() === userId;
-    const isLeader = project.projectLeader && project.projectLeader.toString() === userId;
+    const isProvider = project.problemProvider && (project.problemProvider._id || project.problemProvider).toString() === userId;
+    const isLeader = project.projectLeader && (project.projectLeader._id || project.projectLeader).toString() === userId;
     const isAdmin = req.user.role === "ADMIN";
 
     if (!isProvider && !isLeader && !isAdmin) {
@@ -104,13 +114,41 @@ exports.getProjectRequests = async (req, res) => {
     const requests = await DeveloperRequest.find({ project: req.params.id })
       .populate(
         "developer",
-        "name skills reputation projectsCompleted projectsLed badges githubProfile linkedinOrPortfolio bio"
+        "name skills reputation projectsCompleted projectsLed badges githubProfile linkedinOrPortfolio bio avatar"
       )
       .sort("-createdAt");
 
     res.status(200).json({ requests });
   } catch (err) {
     console.error("Get project requests error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * GET /api/requests/incoming
+ * Get all incoming developer join/lead requests for projects owned or led by current user.
+ */
+exports.getIncomingRequests = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const projects = await Project.find({
+      $or: [{ problemProvider: userId }, { projectLeader: userId }],
+    }).select("_id title status maxTeamSize teamMembers");
+
+    const projectIds = projects.map((p) => p._id);
+
+    const requests = await DeveloperRequest.find({ project: { $in: projectIds } })
+      .populate("project", "title status maxTeamSize teamMembers projectLeader problemProvider")
+      .populate(
+        "developer",
+        "name skills reputation projectsCompleted projectsLed badges githubProfile linkedinOrPortfolio bio avatar"
+      )
+      .sort("-createdAt");
+
+    res.status(200).json({ requests, projects });
+  } catch (err) {
+    console.error("Get incoming requests error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -147,8 +185,8 @@ exports.acceptRequest = async (req, res) => {
     if (!project) return res.status(404).json({ message: "Project not found" });
 
     const userId = req.user._id.toString();
-    const isProvider = project.problemProvider.toString() === userId;
-    const isLeader = project.projectLeader && project.projectLeader.toString() === userId;
+    const isProvider = project.problemProvider && (project.problemProvider._id || project.problemProvider).toString() === userId;
+    const isLeader = project.projectLeader && (project.projectLeader._id || project.projectLeader).toString() === userId;
     const isAdmin = req.user.role === "ADMIN";
 
     if (!isProvider && !isLeader && !isAdmin) {
@@ -171,11 +209,13 @@ exports.acceptRequest = async (req, res) => {
 
       await applyRequestAcceptedReputation(request.developer);
 
-      // Close other pending requests for this initial leader spot
-      await DeveloperRequest.updateMany(
-        { project: project._id, _id: { $ne: request._id }, status: "PENDING" },
-        { status: "REJECTED" }
-      );
+      // Only reject other requests if team has reached maximum capacity; otherwise keep them pending for the leader to review as team contributors
+      if (project.teamMembers.length >= project.maxTeamSize) {
+        await DeveloperRequest.updateMany(
+          { project: project._id, _id: { $ne: request._id }, status: "PENDING" },
+          { status: "REJECTED" }
+        );
+      }
 
       await createNotification(
         request.developer,
@@ -191,6 +231,11 @@ exports.acceptRequest = async (req, res) => {
     }
 
     // CASE 2: Team Member Join Request (Leader already exists)
+    // ONLY the Team Leader (or Admin) can accept team member requests, NOT the Problem Provider!
+    if (!isLeader && !isAdmin) {
+      return res.status(403).json({ message: "Only the Team Leader can accept team member requests." });
+    }
+
     if (project.teamMembers.length >= project.maxTeamSize) {
       return res.status(400).json({ message: `Team is full (${project.teamMembers.length}/${project.maxTeamSize}).` });
     }
@@ -249,12 +294,20 @@ exports.rejectRequest = async (req, res) => {
     if (!project) return res.status(404).json({ message: "Project not found" });
 
     const userId = req.user._id.toString();
-    const isProvider = project.problemProvider.toString() === userId;
-    const isLeader = project.projectLeader && project.projectLeader.toString() === userId;
+    const isProvider = project.problemProvider && (project.problemProvider._id || project.problemProvider).toString() === userId;
+    const isLeader = project.projectLeader && (project.projectLeader._id || project.projectLeader).toString() === userId;
     const isAdmin = req.user.role === "ADMIN";
 
-    if (!isProvider && !isLeader && !isAdmin) {
-      return res.status(403).json({ message: "Not authorized to reject requests." });
+    // If no leader yet, only provider can reject leader applications.
+    // If leader exists, ONLY the Team Leader can reject team member requests, NOT the problem provider!
+    if (!project.projectLeader) {
+      if (!isProvider && !isAdmin) {
+        return res.status(403).json({ message: "Only the Problem Provider can decline leader applications." });
+      }
+    } else {
+      if (!isLeader && !isAdmin) {
+        return res.status(403).json({ message: "Only the Team Leader can decline team member requests." });
+      }
     }
 
     request.status = "REJECTED";

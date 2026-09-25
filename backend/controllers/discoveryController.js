@@ -1,6 +1,7 @@
 const ProjectDiscovery = require("../models/ProjectDiscovery");
 const Project = require("../models/Project");
 const discoveryService = require("../services/projectDiscoveryService");
+const { createNotification } = require("../services/notificationService");
 
 /**
  * Helper to retrieve a discovery session by ID or Project ID,
@@ -429,6 +430,14 @@ exports.completeDiscovery = async (req, res) => {
     session.status = "completed";
     session.projectId = project._id;
     await session.save();
+
+    // Send notification to the provider about successful project creation & launch
+    await createNotification(
+      req.user._id,
+      "PROJECT_CREATED",
+      `🚀 Your project "${title}" has been successfully created and is now OPEN for developer applications!`,
+      { projectId: project._id, projectTitle: title }
+    );
 
     res.status(200).json({
       success: true,

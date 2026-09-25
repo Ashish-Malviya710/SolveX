@@ -20,12 +20,10 @@ import {
   FiZap,
   FiShield,
   FiTarget,
-  FiGlobe,
 } from "react-icons/fi";
 import api from "../../services/api";
 import {
   startDiscovery,
-  updateDiscoveryLanguage,
   answerDiscoveryQuestion,
   generateBlueprint,
   updateBlueprint,
@@ -39,12 +37,6 @@ const STAGES = {
   BLUEPRINT: "BLUEPRINT",
 };
 
-const LANGUAGES = [
-  { id: "en", label: "English", sub: "English" },
-  { id: "hi", label: "हिंदी", sub: "Hindi" },
-  { id: "hinglish", label: "Hinglish", sub: "Hindi + English" },
-];
-
 const CreateProblem = () => {
   const navigate = useNavigate();
 
@@ -56,7 +48,6 @@ const CreateProblem = () => {
   const [discoveryId, setDiscoveryId] = useState(null);
   const [initialIdea, setInitialIdea] = useState("");
   const [language, setLanguage] = useState("en");
-  const [switchingLanguage, setSwitchingLanguage] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [conversation, setConversation] = useState([]);
   const [readinessScore, setReadinessScore] = useState(15);
@@ -111,29 +102,6 @@ const CreateProblem = () => {
   // ----------------------------------------------------
   // DISCOVERY ACTIONS
   // ----------------------------------------------------
-
-  const handleLanguageSwitch = async (newLang) => {
-    if (newLang === language) return;
-    setLanguage(newLang);
-
-    if (stage === STAGES.DISCOVERY && discoveryId) {
-      setSwitchingLanguage(true);
-      setError("");
-      try {
-        const res = await updateDiscoveryLanguage(discoveryId, newLang);
-        if (res.data?.session) {
-          setCurrentQuestion(res.data.session.currentQuestion);
-          setConversation(res.data.session.conversation || []);
-        }
-        setSuccessMsg(`Switched interview language to ${newLang === "hi" ? "हिंदी (Hindi)" : newLang === "hinglish" ? "Hinglish" : "English"}.`);
-      } catch (err) {
-        console.error("Language switch error:", err);
-        setError("Failed to update language on server. Continuing with current session.");
-      } finally {
-        setSwitchingLanguage(false);
-      }
-    }
-  };
 
   const handleStartDiscovery = async () => {
     if (!initialIdea.trim() || initialIdea.trim().length < 5) {
@@ -193,8 +161,24 @@ const CreateProblem = () => {
       }
     }
 
+    // Optimistic UI: immediately clear inputs and show answer in conversation
+    setUserAnswer("");
+    setSelectedOptions([]);
+    setCustomOptionText("");
+    setCurrentQuestion(null); // Hide current question immediately
     setLoading(true);
-    setLoadingAction("AI Analyst is reasoning and shaping architecture...");
+    setLoadingAction("Generating next question...");
+
+    // Optimistically add user's answer to conversation for instant feedback
+    setConversation((prev) => [
+      ...prev,
+      {
+        role: "user",
+        type: "answer",
+        content: finalAnswer,
+        createdAt: new Date().toISOString(),
+      },
+    ]);
 
     try {
       const res = await answerDiscoveryQuestion(discoveryId, finalAnswer);
@@ -203,9 +187,6 @@ const CreateProblem = () => {
       setConversation(session.conversation || []);
       setReadinessScore(session.readinessScore || 50);
       setAiSummary(session.aiSummary || "");
-      setUserAnswer("");
-      setSelectedOptions([]);
-      setCustomOptionText("");
 
       if (isReady || !session.currentQuestion) {
         // Automatically trigger blueprint generation if ready
@@ -214,6 +195,8 @@ const CreateProblem = () => {
     } catch (err) {
       console.error("Answer submission error:", err);
       setError(err.response?.data?.message || "Failed to submit answer. Please retry.");
+      // Restore the question on error so user can retry
+      setCurrentQuestion(currentQuestion);
     } finally {
       setLoading(false);
       setLoadingAction("");
@@ -417,35 +400,6 @@ const CreateProblem = () => {
         <div className="bg-dark-900 border border-dark-800 rounded-2xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-80 h-80 bg-primary-600/5 rounded-full blur-3xl pointer-events-none" />
 
-          {/* Language Selector */}
-          <div className="mb-6 p-4 rounded-xl bg-dark-950/80 border border-dark-800">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <FiGlobe className="w-4 h-4 text-primary-400" />
-                <span className="text-xs font-semibold text-gray-300">
-                  AI Interview & Blueprint Language:
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                {LANGUAGES.map((lang) => (
-                  <button
-                    key={lang.id}
-                    type="button"
-                    onClick={() => setLanguage(lang.id)}
-                    className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                      language === lang.id
-                        ? "bg-primary-600 text-white shadow-md shadow-primary-600/30"
-                        : "bg-dark-900 border border-dark-700 text-gray-400 hover:text-gray-200"
-                    }`}
-                  >
-                    <span>{lang.label}</span>
-                    <span className="text-[10px] opacity-70 ml-1">({lang.sub})</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
           <label className="block text-sm font-medium text-gray-200 mb-2">
             Describe your project, community challenge, or software idea
           </label>
@@ -530,28 +484,7 @@ const CreateProblem = () => {
               </h2>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              {/* Language Switcher Mid-Session */}
-              <div className="flex items-center gap-1 bg-dark-950 px-2.5 py-1 rounded-lg border border-dark-800">
-                <FiGlobe className="w-3.5 h-3.5 text-primary-400 mr-1" />
-                {LANGUAGES.map((l) => (
-                  <button
-                    key={l.id}
-                    type="button"
-                    disabled={switchingLanguage}
-                    onClick={() => handleLanguageSwitch(l.id)}
-                    className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
-                      language === l.id
-                        ? "bg-primary-600 text-white"
-                        : "text-gray-400 hover:text-gray-200"
-                    }`}
-                  >
-                    {l.label}
-                  </button>
-                ))}
-                {switchingLanguage && <FiRefreshCw className="w-3 h-3 animate-spin text-primary-400 ml-1" />}
-              </div>
-
-              <div className="flex items-center gap-1.5 pl-2 border-l border-dark-800">
+              <div className="flex items-center gap-1.5">
                 <span className="text-xs text-gray-400">Readiness:</span>
                 <span className="text-sm font-bold text-primary-400">{readinessScore}%</span>
               </div>
@@ -568,7 +501,7 @@ const CreateProblem = () => {
 
           <p className="text-xs text-gray-400 mt-2 italic flex items-center justify-between">
             <span>{aiSummary || "AI is learning about your project requirements..."}</span>
-            {readinessScore >= 50 && (
+            {readinessScore >= 80 && (
               <button
                 type="button"
                 onClick={() => handleGenerateBlueprint()}
@@ -785,6 +718,13 @@ const CreateProblem = () => {
               </div>
             </form>
           </div>
+        ) : loading ? (
+          /* Loading state — show spinner while waiting for next question (NOT the completion block) */
+          <div className="bg-dark-900 border border-dark-800 rounded-2xl p-8 text-center">
+            <FiRefreshCw className="w-10 h-10 text-primary-400 mx-auto mb-4 animate-spin" />
+            <h3 className="text-lg font-bold text-white mb-2">{loadingAction || "Generating next question..."}</h3>
+            <p className="text-sm text-gray-400">AI is analyzing your response and preparing the next question.</p>
+          </div>
         ) : (
           <div className="bg-dark-900 border border-dark-800 rounded-2xl p-8 text-center">
             <FiCheckCircle className="w-12 h-12 text-green-400 mx-auto mb-4" />
@@ -878,7 +818,7 @@ const CreateProblem = () => {
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-950/60 border border-green-500/30 text-green-400 text-xs font-semibold uppercase tracking-wider mb-2">
                 <FiCheckCircle className="w-3.5 h-3.5" />
-                Technical Blueprint Generated ({language === "hi" ? "हिंदी" : language === "hinglish" ? "Hinglish" : "English"})
+                Technical Blueprint Generated
               </div>
               <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
                 {blueprint.title || "Software Project Blueprint"}

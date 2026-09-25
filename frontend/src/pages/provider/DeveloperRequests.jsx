@@ -44,12 +44,15 @@ const DeveloperRequests = () => {
     }
   }, [selectedProjectId]);
 
+  const selectedProject = projects.find((p) => p._id === selectedProjectId);
+  const selectedProjectHasLeader = Boolean(selectedProject?.projectLeader);
+
   const handleAccept = async (reqId) => {
     setActionError("");
     setActionSuccess("");
     try {
-      await api.put(`/requests/${reqId}/accept`);
-      setActionSuccess("Developer accepted! They are now the Project Leader for this problem.");
+      const acceptRes = await api.put(`/requests/${reqId}/accept`);
+      setActionSuccess(acceptRes.data?.message || "Developer request accepted successfully!");
       // Refresh requests
       const res = await api.get(`/projects/${selectedProjectId}/requests`);
       setRequests(res.data.requests || []);
@@ -110,6 +113,17 @@ const DeveloperRequests = () => {
               </option>
             ))}
           </select>
+        </div>
+      )}
+
+      {selectedProjectHasLeader && (
+        <div className="p-3 bg-dark-900/60 border border-primary-500/20 rounded-xl text-xs text-gray-300 flex items-center justify-between flex-wrap gap-2">
+          <span>
+            👑 Team Leader: <strong className="text-white">{selectedProject.projectLeader?.name || "Assigned"}</strong>. Only the Team Leader reviews and accepts other team member requests.
+          </span>
+          <Link to={`/projects/${selectedProjectId}?tab=team`} className="text-primary-400 hover:underline">
+            View Project Team →
+          </Link>
         </div>
       )}
 
@@ -190,22 +204,31 @@ const DeveloperRequests = () => {
               {/* Action Buttons */}
               <div className="flex items-center gap-2.5 self-end md:self-center flex-shrink-0">
                 {r.status === "PENDING" && (
-                  <>
-                    <button
-                      onClick={() => handleAccept(r._id)}
-                      className="btn-success btn-sm flex items-center gap-1 text-xs"
+                  !selectedProjectHasLeader ? (
+                    <>
+                      <button
+                        onClick={() => handleAccept(r._id)}
+                        className="btn-success btn-sm flex items-center gap-1 text-xs"
+                      >
+                        <FiCheck className="w-4 h-4" />
+                        <span>Accept as Leader</span>
+                      </button>
+                      <button
+                        onClick={() => handleReject(r._id)}
+                        className="btn-secondary btn-sm text-red-400 text-xs"
+                      >
+                        <FiX className="w-4 h-4" />
+                        <span>Decline</span>
+                      </button>
+                    </>
+                  ) : (
+                    <span
+                      className="badge badge-neutral text-xs py-1 px-3 border border-dark-600"
+                      title="Only the designated Team Leader can accept or decline team member requests"
                     >
-                      <FiCheck className="w-4 h-4" />
-                      <span>Accept as Leader</span>
-                    </button>
-                    <button
-                      onClick={() => handleReject(r._id)}
-                      className="btn-secondary btn-sm text-red-400 text-xs"
-                    >
-                      <FiX className="w-4 h-4" />
-                      <span>Decline</span>
-                    </button>
-                  </>
+                      Team Leader Reviews
+                    </span>
+                  )
                 )}
                 <Link
                   to={`/developers/${r.developer?._id}`}

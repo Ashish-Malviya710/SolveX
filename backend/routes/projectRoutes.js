@@ -7,7 +7,7 @@ const {
 } = require("../controllers/projectController");
 const { createRequest, getProjectRequests } = require("../controllers/requestController");
 const { createInvitation, getProjectInvitations } = require("../controllers/invitationController");
-const { addMember, removeMember, updateMemberRole, getTeam } = require("../controllers/teamController");
+const { addMember, removeMember, updateMemberRole, getTeam, updateTeamSize } = require("../controllers/teamController");
 const { createProposal, getProposal } = require("../controllers/proposalController");
 const {
   startDiscovery,
@@ -64,6 +64,7 @@ router.get("/:id/team", protect, getTeam);
 router.post("/:id/team/members", protect, authorize("DEVELOPER"), addMember);
 router.delete("/:id/team/members/:userId", protect, authorize("DEVELOPER"), removeMember);
 router.put("/:id/team/members/:userId/role", protect, authorize("DEVELOPER"), updateMemberRole);
+router.put("/:id/team/size", protect, updateTeamSize);
 
 // Proposal (nested under project)
 router.post("/:id/proposal", protect, authorize("DEVELOPER"), createProposal);
