@@ -1,10 +1,17 @@
 import React, { useState, useContext } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { FiUser, FiMail, FiLock, FiArrowRight, FiCheckCircle, FiCode, FiHeart } from "react-icons/fi";
+import { Link, useNavigate, Navigate } from "react-router-dom";
+import { FiUser, FiMail, FiLock, FiArrowRight, FiCode, FiHeart } from "react-icons/fi";
 import { AuthContext } from "../../context/AuthContext";
+import { getDashboardRoute } from "../../components/PublicOnlyRoute";
+import {
+  Container,
+  Card,
+  Button,
+  Input,
+} from "../../components/ui";
 
 const Register = () => {
-  const { register } = useContext(AuthContext);
+  const { register, user, isAuthenticated } = useContext(AuthContext);
   const [role, setRole] = useState("DEVELOPER");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -12,6 +19,10 @@ const Register = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  if (isAuthenticated && user) {
+    return <Navigate to={getDashboardRoute(user.role)} replace />;
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,45 +38,41 @@ const Register = () => {
     setLoading(false);
 
     if (result.success) {
-      if (role === "DEVELOPER") {
-        navigate("/developer/dashboard");
-      } else {
-        navigate("/provider/dashboard");
-      }
+      navigate(getDashboardRoute(role), { replace: true });
     } else {
       setError(result.error);
     }
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-6">
+    <div className="min-h-[80vh] flex items-center justify-center py-12">
+      <Container size="narrow" className="max-w-md space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-primary-600 to-accent-500 flex items-center justify-center text-white font-extrabold text-2xl mx-auto shadow-glow-sm">
+          <div className="w-10 h-10 rounded-inputs bg-carbon border border-iron text-lime font-mono font-bold text-xl flex items-center justify-center mx-auto shadow-glow-sm">
             S
           </div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-white">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
             Create Your Account
-          </h2>
-          <p className="text-xs text-gray-400">
+          </h1>
+          <p className="text-xs text-smoke">
             Join the developer network or publish a community challenge.
           </p>
         </div>
 
         {/* Form Card */}
-        <div className="glass-card p-8 space-y-6">
+        <Card className="p-8 space-y-6">
           {/* Role Picker Tabs */}
-          <div className="space-y-1.5">
-            <label className="input-label text-xs">I want to join as a:</label>
+          <div className="space-y-2">
+            <label className="input-label">I want to join as a:</label>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => setRole("DEVELOPER")}
-                className={`p-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition ${
+                className={`p-3 rounded-buttons border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
                   role === "DEVELOPER"
-                    ? "bg-primary-600/20 border-primary-500 text-primary-300 shadow-glow-sm"
-                    : "bg-dark-900/60 border-dark-700 text-gray-400 hover:bg-dark-800"
+                    ? "bg-lime-dark border-lime/40 text-lime"
+                    : "bg-void border-iron text-smoke hover:bg-graphite"
                 }`}
               >
                 <FiCode className="w-4 h-4" />
@@ -75,102 +82,82 @@ const Register = () => {
               <button
                 type="button"
                 onClick={() => setRole("PROBLEM_PROVIDER")}
-                className={`p-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition ${
+                className={`p-3 rounded-buttons border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
                   role === "PROBLEM_PROVIDER"
-                    ? "bg-accent-600/20 border-accent-500 text-accent-300 shadow-glow-accent"
-                    : "bg-dark-900/60 border-dark-700 text-gray-400 hover:bg-dark-800"
+                    ? "bg-lime-dark border-lime/40 text-lime"
+                    : "bg-void border-iron text-smoke hover:bg-graphite"
                 }`}
               >
                 <FiHeart className="w-4 h-4" />
                 <span>Problem Provider</span>
               </button>
             </div>
-            <p className="text-[11px] text-gray-500 pt-1">
+            <p className="text-[11px] text-smoke pt-0.5">
               {role === "DEVELOPER"
-                ? "💡 Discover problems, apply to solve, lead projects, and earn reputation badges."
-                : "💡 Submit problems, receive AI analysis, recruit developer teams, and approve delivery."}
+                ? "💡 Discover problems, apply to lead/join teams, and build verified reputation."
+                : "💡 Submit real challenges, receive AI scoping, and collaborate with skilled developers."}
             </p>
           </div>
 
           {error && (
-            <div className="p-3.5 bg-red-500/20 border border-red-500/40 text-red-300 text-xs rounded-xl">
+            <div className="p-3 bg-red-950/60 border border-red-500/40 text-red-300 text-xs rounded-inputs">
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="input-label text-xs">
-                {role === "DEVELOPER" ? "Full Name" : "Organization or Provider Name"}
-              </label>
-              <div className="relative">
-                <FiUser className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input
-                  type="text"
-                  required
-                  placeholder={role === "DEVELOPER" ? "e.g. Ashish Lohar" : "e.g. Clean Canopy NGO"}
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="input-field pl-10 text-xs"
-                />
-              </div>
-            </div>
+            <Input
+              label={role === "DEVELOPER" ? "Full Name" : "Organization or Provider Name"}
+              type="text"
+              required
+              placeholder={role === "DEVELOPER" ? "e.g. Ashish Lohar" : "e.g. Clean Canopy NGO"}
+              icon={FiUser}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
 
-            <div>
-              <label className="input-label text-xs">Email Address</label>
-              <div className="relative">
-                <FiMail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input
-                  type="email"
-                  required
-                  placeholder="name@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="input-field pl-10 text-xs"
-                />
-              </div>
-            </div>
+            <Input
+              label="Email Address"
+              type="email"
+              required
+              placeholder="name@example.com"
+              icon={FiMail}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
 
-            <div>
-              <label className="input-label text-xs">Password (6+ chars)</label>
-              <div className="relative">
-                <FiLock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="input-field pl-10 text-xs"
-                />
-              </div>
-            </div>
+            <Input
+              label="Password (6+ chars)"
+              type="password"
+              required
+              placeholder="••••••••"
+              icon={FiLock}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
 
-            <button
+            <Button
               type="submit"
-              disabled={loading}
-              className="btn-primary w-full py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2"
+              variant="primary"
+              size="md"
+              loading={loading}
+              className="w-full mt-2"
+              icon={FiArrowRight}
+              iconPosition="right"
             >
-              {loading ? (
-                <div className="spinner w-4 h-4 border-2" />
-              ) : (
-                <>
-                  <span>Create {role === "DEVELOPER" ? "Developer" : "Provider"} Account</span>
-                  <FiArrowRight className="w-4 h-4" />
-                </>
-              )}
-            </button>
+              Create {role === "DEVELOPER" ? "Developer" : "Provider"} Account
+            </Button>
           </form>
-        </div>
+        </Card>
 
         {/* Footer info */}
-        <p className="text-center text-xs text-gray-400">
+        <p className="text-center text-xs text-smoke font-mono">
           Already have an account?{" "}
-          <Link to="/login" className="text-primary-400 font-semibold hover:underline">
+          <Link to="/login" className="text-lime hover:underline font-semibold">
             Sign In here
           </Link>
         </p>
-      </div>
+      </Container>
     </div>
   );
 };

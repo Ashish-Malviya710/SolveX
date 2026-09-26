@@ -12,12 +12,14 @@ exports.createProject = async (req, res) => {
     const {
       title, description, category, requiredFeatures, preferredTechnologies,
       requiredSkills, budgetType, budgetAmount, currency, budgetDescription,
-      expectedDuration, deadline, maxTeamSize,
+      expectedDuration, deadline, maxTeamSize, status,
     } = req.body;
 
     if (!title || !description) {
       return res.status(400).json({ message: "Title and description are required" });
     }
+
+    const projectStatus = status || "OPEN";
 
     const project = await Project.create({
       title,
@@ -34,39 +36,47 @@ exports.createProject = async (req, res) => {
       expectedDuration,
       deadline,
       maxTeamSize: maxTeamSize || 5,
-      status: "DRAFT",
+      status: projectStatus,
     });
-
-    // Auto-trigger AI analysis with complete problem context
-    try {
-      const aiResult = await analyzeProblem({
-        title,
-        description,
-        category,
-        requiredFeatures,
-        preferredTechnologies,
-        requiredSkills,
-      });
-      project.aiSummary = aiResult.summary;
-      project.aiSuggestedFeatures = aiResult.suggestedFeatures;
-      project.aiSuggestedSkills = aiResult.suggestedSkills;
-      project.aiComplexity = aiResult.complexity;
-      await project.save();
-    } catch (aiErr) {
-      console.error("AI analysis failed (non-blocking):", aiErr.message);
-    }
 
     const populated = await Project.findById(project._id).populate("problemProvider", "name email");
 
-    // Notify provider about successful project creation
-    await createNotification(
-      req.user._id,
-      "PROJECT_CREATED",
-      `📝 Your project "${title}" has been created as a draft. Publish it to make it visible to developers!`,
-      { projectId: project._id, projectTitle: title }
-    );
-
+    // Send immediate response so project creation is instantaneous (<50ms)
     res.status(201).json({ project: populated });
+
+    // Run AI analysis asynchronously in background without blocking the user
+    setImmediate(async () => {
+      try {
+        const aiResult = await analyzeProblem({
+          title,
+          description,
+          category,
+          requiredFeatures,
+          preferredTechnologies,
+          requiredSkills,
+        });
+        if (aiResult) {
+          await Project.findByIdAndUpdate(project._id, {
+            aiSummary: aiResult.summary,
+            aiSuggestedFeatures: aiResult.suggestedFeatures,
+            aiSuggestedSkills: aiResult.suggestedSkills,
+            aiComplexity: aiResult.complexity,
+          });
+        }
+      } catch (aiErr) {
+        console.warn("Background AI analysis notice (non-blocking):", aiErr.message);
+      }
+    });
+
+    // Notify provider in background
+    createNotification(
+      req.user._id,
+      projectStatus === "OPEN" ? "PROJECT_PUBLISHED" : "PROJECT_CREATED",
+      projectStatus === "OPEN"
+        ? `🚀 Your project "${title}" is now LIVE and open for developer applications!`
+        : `📝 Your project "${title}" has been created as a draft.`,
+      { projectId: project._id, projectTitle: title }
+    ).catch((notifErr) => console.warn("Notification error:", notifErr.message));
   } catch (err) {
     console.error("Create project error:", err);
     res.status(500).json({ message: "Server error" });
@@ -92,8 +102,19 @@ exports.getProjects = async (req, res) => {
     if (status) {
       filter.status = status;
     } else {
-      // By default show only OPEN+ projects for public listing
-      filter.status = { $nin: ["DRAFT"] };
+      // By default show only active, ongoing projects for public explore listing (exclude DRAFT and COMPLETED)
+      filter.status = { $nin: ["DRAFT", "COMPLETED"] };
+    }
+    if (req.query.excludeCompleted === "true" || req.query.excludeCompleted === true) {
+      if (filter.status === "COMPLETED") {
+        filter.status = { $nin: ["DRAFT", "COMPLETED"] };
+      } else if (typeof filter.status === "object" && filter.status.$nin) {
+        if (!filter.status.$nin.includes("COMPLETED")) {
+          filter.status.$nin.push("COMPLETED");
+        }
+      } else if (!filter.status) {
+        filter.status = { $nin: ["DRAFT", "COMPLETED"] };
+      }
     }
     if (search) {
       filter.$or = [
@@ -194,17 +215,23 @@ exports.updateProject = async (req, res) => {
       }
     }
 
-    // Re-run AI analysis if description changed
+    // Re-run AI analysis in background if description changed
     if (req.body.description) {
-      try {
-        const aiResult = await analyzeProblem(req.body.description);
-        project.aiSummary = aiResult.summary;
-        project.aiSuggestedFeatures = aiResult.suggestedFeatures;
-        project.aiSuggestedSkills = aiResult.suggestedSkills;
-        project.aiComplexity = aiResult.complexity;
-      } catch (aiErr) {
-        console.error("AI re-analysis failed (non-blocking):", aiErr.message);
-      }
+      setImmediate(async () => {
+        try {
+          const aiResult = await analyzeProblem(req.body.description);
+          if (aiResult) {
+            await Project.findByIdAndUpdate(project._id, {
+              aiSummary: aiResult.summary,
+              aiSuggestedFeatures: aiResult.suggestedFeatures,
+              aiSuggestedSkills: aiResult.suggestedSkills,
+              aiComplexity: aiResult.complexity,
+            });
+          }
+        } catch (aiErr) {
+          console.warn("AI re-analysis failed (non-blocking):", aiErr.message);
+        }
+      });
     }
 
     await project.save();

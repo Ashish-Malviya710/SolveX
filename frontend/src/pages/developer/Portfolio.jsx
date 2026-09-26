@@ -14,7 +14,6 @@ import {
   FiClock,
   FiDollarSign,
   FiGlobe,
-  FiFileText,
   FiPlayCircle,
   FiUser,
   FiChevronRight,
@@ -22,6 +21,14 @@ import {
 } from "react-icons/fi";
 import { AuthContext } from "../../context/AuthContext";
 import api from "../../services/api";
+import {
+  Container,
+  PageHeader,
+  Card,
+  CardContent,
+  Button,
+  Badge,
+} from "../../components/ui";
 
 const Portfolio = () => {
   const { user } = useContext(AuthContext);
@@ -47,10 +54,15 @@ const Portfolio = () => {
   const isUserLeader = (project) => {
     if (!user) return false;
     const userId = user._id?.toString();
-    const leaderId = project.projectLeader?._id?.toString() || project.projectLeader?.toString();
+    const leaderId =
+      project.projectLeader?._id?.toString() ||
+      project.projectLeader?.toString();
     if (leaderId === userId) return true;
     return project.teamMembers?.some(
-      (m) => (m.user?._id?.toString() === userId || m.user?.toString() === userId) && m.role === "Leader"
+      (m) =>
+        (m.user?._id?.toString() === userId ||
+          m.user?.toString() === userId) &&
+        m.role === "Leader"
     );
   };
 
@@ -68,276 +80,284 @@ const Portfolio = () => {
     switch (status) {
       case "COMPLETED":
         return (
-          <span className="badge badge-success text-xs py-1 px-3 flex items-center gap-1.5 shadow-sm">
-            <FiCheckCircle className="w-3.5 h-3.5" /> Completed & Delivered
-          </span>
+          <Badge variant="success" size="sm">
+            <FiCheckCircle className="w-3.5 h-3.5" />
+            <span>Completed & Delivered</span>
+          </Badge>
         );
       case "IN_DEVELOPMENT":
         return (
-          <span className="badge badge-primary text-xs py-1 px-3 flex items-center gap-1.5 shadow-sm">
-            <FiCode className="w-3.5 h-3.5" /> In Development
-          </span>
+          <Badge variant="lime" size="sm">
+            <FiCode className="w-3.5 h-3.5" />
+            <span>In Development</span>
+          </Badge>
         );
       case "SUBMITTED":
       case "UNDER_REVIEW":
         return (
-          <span className="badge badge-warning text-xs py-1 px-3 flex items-center gap-1.5 shadow-sm">
-            <FiClock className="w-3.5 h-3.5" /> Under Review
-          </span>
+          <Badge variant="warning" size="sm">
+            <FiClock className="w-3.5 h-3.5" />
+            <span>Under Review</span>
+          </Badge>
         );
       case "APPROVED":
         return (
-          <span className="badge badge-accent text-xs py-1 px-3 flex items-center gap-1.5 shadow-sm">
-            <FiCheckCircle className="w-3.5 h-3.5" /> Approved
-          </span>
+          <Badge variant="success" size="sm">
+            <FiCheckCircle className="w-3.5 h-3.5" />
+            <span>Approved</span>
+          </Badge>
         );
       default:
         return (
-          <span className="badge badge-neutral text-xs py-1 px-3 flex items-center gap-1.5 shadow-sm">
-            <FiLayers className="w-3.5 h-3.5" /> {status?.replace(/_/g, " ")}
-          </span>
+          <Badge variant="neutral" size="sm">
+            <FiLayers className="w-3.5 h-3.5" />
+            <span>{status?.replace(/_/g, " ")}</span>
+          </Badge>
         );
     }
   };
 
   return (
-    <div className="page-container max-w-5xl space-y-8 pb-16">
+    <Container className="py-8 max-w-5xl space-y-8">
       {/* Portfolio Header Card */}
-      <div className="glass-card p-8 sm:p-10 relative overflow-hidden">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-          <div className="flex items-center gap-6">
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-gradient-to-tr from-primary-600 via-accent-500 to-emerald-400 flex items-center justify-center text-white font-extrabold text-3xl shadow-glow-md flex-shrink-0">
-              {user?.name ? user.name.charAt(0).toUpperCase() : "D"}
+      <Card>
+        <CardContent className="p-8 sm:p-10 space-y-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+            <div className="flex items-center gap-6">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg bg-graphite border border-hairline flex items-center justify-center text-lime font-mono font-bold text-3xl shrink-0">
+                {user?.name ? user.name.charAt(0).toUpperCase() : "D"}
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-paper font-display">
+                    {user?.name}
+                  </h1>
+                  <Badge variant="lime" size="sm">
+                    Verified Developer
+                  </Badge>
+                  {ledProjects.length > 0 && (
+                    <Badge variant="warning" size="sm">
+                      👑 Verified Project Leader
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs font-mono text-smoke max-w-xl leading-relaxed">
+                  {user?.bio ||
+                    "Full stack software engineer contributing to verified social impact solutions."}
+                </p>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-white font-display">
-                  {user?.name}
-                </h1>
-                <span className="badge badge-accent text-xs py-0.5 px-2.5">
-                  Verified Developer
-                </span>
-                {ledProjects.length > 0 && (
-                  <span className="badge bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs py-0.5 px-2.5 flex items-center gap-1 font-semibold">
-                    👑 Verified Project Leader
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-gray-400 max-w-xl leading-relaxed">
-                {user?.bio || "Full stack software engineer contributing to verified social impact solutions."}
-              </p>
-            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              to="/settings"
+              className="self-end sm:self-center"
+            >
+              <FiSettings className="w-4 h-4" />
+              <span>Edit Profile</span>
+            </Button>
           </div>
 
-          <Link
-            to="/settings"
-            className="btn-secondary btn-sm flex items-center gap-2 self-end sm:self-center"
-          >
-            <FiSettings className="w-4 h-4" />
-            <span>Edit Profile</span>
-          </Link>
-        </div>
-
-        {/* Links & Availability */}
-        <div className="flex items-center gap-3 pt-6 mt-6 border-t border-dark-700/60 flex-wrap">
-          {user?.githubProfile && (
-            <a
-              href={user.githubProfile}
-              target="_blank"
-              rel="noreferrer"
-              className="btn-secondary btn-sm flex items-center gap-2 text-xs"
+          {/* Links & Public profile */}
+          <div className="flex items-center gap-3 pt-6 border-t border-hairline flex-wrap">
+            {user?.githubProfile && (
+              <Button
+                variant="secondary"
+                size="sm"
+                href={user.githubProfile}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <FiGithub className="text-lime" />
+                <span>GitHub</span>
+              </Button>
+            )}
+            {user?.linkedinOrPortfolio && (
+              <Button
+                variant="secondary"
+                size="sm"
+                href={user.linkedinOrPortfolio}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <FiLinkedin className="text-lime" />
+                <span>LinkedIn</span>
+              </Button>
+            )}
+            <Link
+              to={`/developers/${user?._id}`}
+              className="text-xs font-mono text-lime hover:underline ml-auto flex items-center gap-1"
             >
-              <FiGithub className="text-emerald-400" />
-              <span>GitHub</span>
-            </a>
-          )}
-          {user?.linkedinOrPortfolio && (
-            <a
-              href={user.linkedinOrPortfolio}
-              target="_blank"
-              rel="noreferrer"
-              className="btn-secondary btn-sm flex items-center gap-2 text-xs"
-            >
-              <FiLinkedin className="text-primary-400" />
-              <span>LinkedIn</span>
-            </a>
-          )}
-          <Link to={`/developers/${user?._id}`} className="text-xs text-primary-400 hover:underline ml-auto flex items-center gap-1">
-            <span>View Public Profile</span>
-            <FiExternalLink className="w-3 h-3" />
-          </Link>
-        </div>
-      </div>
+              <span>View Public Profile</span>
+              <FiExternalLink className="w-3 h-3" />
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Stats & Badges Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Left: Reputation & Badges */}
-        <div className="glass-card p-6 space-y-6">
-          <div>
-            <span className="input-label text-xs">Platform Reputation</span>
-            <div className="text-3xl font-extrabold text-accent-400 font-display mt-1">
-              {user?.reputation || 0} <span className="text-xs font-normal text-gray-400">pts</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-dark-700/60">
+        <Card>
+          <CardContent className="p-6 space-y-6">
             <div>
-              <div className="text-xl font-bold text-white font-display">
-                {user?.projectsCompleted || 0}
+              <span className="text-xs font-mono uppercase tracking-wider text-smoke block">
+                Platform Reputation
+              </span>
+              <div className="text-3xl font-mono font-bold text-lime mt-1">
+                {user?.reputation || 0}{" "}
+                <span className="text-xs font-normal text-smoke">pts</span>
               </div>
-              <div className="text-xs text-gray-400">Total Completed</div>
             </div>
-            <div>
-              <div className="text-xl font-bold text-amber-400 font-display flex items-center gap-1">
-                <span>👑</span>
-                <span>{ledProjects.length || user?.projectsLed || 0}</span>
+
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-hairline font-mono">
+              <div>
+                <div className="text-xl font-bold text-paper">
+                  {user?.projectsCompleted || 0}
+                </div>
+                <div className="text-xs text-smoke">Completed</div>
               </div>
-              <div className="text-xs text-gray-400">Projects Led</div>
+              <div>
+                <div className="text-xl font-bold text-lime flex items-center gap-1">
+                  <span>👑</span>
+                  <span>{ledProjects.length || user?.projectsLed || 0}</span>
+                </div>
+                <div className="text-xs text-smoke">Projects Led</div>
+              </div>
             </div>
-          </div>
 
-          {/* Badges Box */}
-          <div className="pt-4 border-t border-dark-700/60 space-y-3">
-            <span className="input-label text-xs flex items-center gap-1 text-amber-300">
-              <FiAward className="w-4 h-4" /> Earned Badges
-            </span>
-            {user?.badges && user.badges.length > 0 ? (
-              <div className="flex flex-col gap-2">
-                {user.badges.map((b, idx) => (
-                  <div
-                    key={idx}
-                    className="p-2.5 rounded-xl bg-dark-900/60 border border-dark-700/60 flex items-center gap-2 text-xs text-gray-200"
-                  >
-                    <span className="text-base">🏆</span>
-                    <span className="font-semibold">{b}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-gray-500 italic">Complete projects to unlock badges!</p>
-            )}
-          </div>
-        </div>
+            {/* Badges Box */}
+            <div className="pt-4 border-t border-hairline space-y-3">
+              <span className="text-xs font-mono uppercase tracking-wider text-smoke flex items-center gap-1.5">
+                <FiAward className="w-4 h-4 text-lime" /> Earned Badges
+              </span>
+              {user?.badges && user.badges.length > 0 ? (
+                <div className="flex flex-col gap-2">
+                  {user.badges.map((b, idx) => (
+                    <div
+                      key={idx}
+                      className="p-2.5 rounded-button bg-void border border-hairline flex items-center gap-2 text-xs font-mono text-bone"
+                    >
+                      <span>🏆</span>
+                      <span className="font-semibold text-paper">{b}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs font-mono text-smoke italic">
+                  Complete challenges to earn reputation badges!
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Right: Verified Skills & Experience */}
-        <div className="md:col-span-2 glass-card p-6 sm:p-8 space-y-6">
-          <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">
-              Technical Skillset
-            </h3>
-            {user?.skills && user.skills.length > 0 ? (
-              <div className="flex flex-wrap gap-2 pt-1">
-                {user.skills.map((s, idx) => (
-                  <span
-                    key={idx}
-                    className="badge badge-primary text-xs py-1 px-3 border border-primary-500/30"
-                  >
-                    {s}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-gray-500 italic">No skills listed yet. Add skills in Settings.</p>
-            )}
-          </div>
-
-          {user?.experience && (
-            <div className="space-y-2 pt-4 border-t border-dark-700/60">
-              <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">
-                Engineering Experience
+        {/* Right: Technical Skills & Experience */}
+        <Card className="md:col-span-2">
+          <CardContent className="p-6 sm:p-8 space-y-6">
+            <div className="space-y-3">
+              <h3 className="text-xs font-mono uppercase tracking-wider text-smoke">
+                Technical Skillset
               </h3>
-              <p className="text-xs text-gray-300 leading-relaxed">
-                {user.experience}
-              </p>
+              {user?.skills && user.skills.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {user.skills.map((s, idx) => (
+                    <Badge key={idx} variant="neutral" size="sm">
+                      {s}
+                    </Badge>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs font-mono text-smoke italic">
+                  No skills listed yet. Add skills in Settings.
+                </p>
+              )}
             </div>
-          )}
-        </div>
+
+            {user?.experience && (
+              <div className="space-y-2 pt-4 border-t border-hairline">
+                <h3 className="text-xs font-mono uppercase tracking-wider text-smoke">
+                  Engineering Experience
+                </h3>
+                <p className="text-xs font-mono text-bone leading-relaxed whitespace-pre-line bg-void p-4 rounded-button border border-hairline">
+                  {user.experience}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Projects Showcase Section */}
       <div className="space-y-6 pt-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-dark-700/80 pb-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-hairline pb-4">
           <div>
             <div className="flex items-center gap-2">
-              <span className="p-1.5 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                <FiShield className="w-5 h-5" />
-              </span>
-              <h2 className="text-xl sm:text-2xl font-extrabold text-white font-display">
+              <FiShield className="w-5 h-5 text-lime" />
+              <h2 className="text-xl sm:text-2xl font-bold text-paper font-display">
                 Projects Portfolio & Leadership Record
               </h2>
             </div>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs font-mono text-smoke mt-1">
               Verified projects delivered as Leader or Contributor on SolveX.
             </p>
           </div>
 
           {/* Filter Tabs */}
-          <div className="flex items-center gap-2 p-1 rounded-xl bg-dark-900/80 border border-dark-700/60 flex-wrap">
-            <button
+          <div className="flex items-center gap-2">
+            <Button
+              variant={activeTab === "led" ? "primary" : "ghost"}
+              size="sm"
               onClick={() => setActiveTab("led")}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
-                activeTab === "led"
-                  ? "bg-amber-500 text-dark-950 font-bold shadow-glow-sm"
-                  : "text-gray-300 hover:text-white hover:bg-dark-800"
-              }`}
             >
-              <span>👑 Projects Led</span>
-              <span className="px-1.5 py-0.2 rounded-md bg-dark-950/20 text-[10px]">
-                {ledProjects.length}
-              </span>
-            </button>
+              <span>👑 Projects Led ({ledProjects.length})</span>
+            </Button>
 
             {contributedProjects.length > 0 && (
-              <button
+              <Button
+                variant={activeTab === "contributed" ? "primary" : "ghost"}
+                size="sm"
                 onClick={() => setActiveTab("contributed")}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
-                  activeTab === "contributed"
-                    ? "bg-primary-600 text-white shadow-glow-sm"
-                    : "text-gray-300 hover:text-white hover:bg-dark-800"
-                }`}
               >
-                <span>👥 Contributions</span>
-                <span className="px-1.5 py-0.2 rounded-md bg-dark-950/30 text-[10px]">
-                  {contributedProjects.length}
-                </span>
-              </button>
+                <span>👥 Contributions ({contributedProjects.length})</span>
+              </Button>
             )}
 
-            <button
+            <Button
+              variant={activeTab === "all" ? "primary" : "ghost"}
+              size="sm"
               onClick={() => setActiveTab("all")}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
-                activeTab === "all"
-                  ? "bg-dark-700 text-white"
-                  : "text-gray-300 hover:text-white hover:bg-dark-800"
-              }`}
             >
               <span>All ({allProjects.length})</span>
-            </button>
+            </Button>
           </div>
         </div>
 
         {/* Project Cards */}
         {loading ? (
-          <div className="glass-card p-8 animate-pulse space-y-3">
-            <div className="skeleton-title" />
-            <div className="skeleton-text" />
-          </div>
+          <Card className="animate-pulse p-8">
+            <div className="h-4 bg-graphite rounded w-1/3 mb-2" />
+            <div className="h-3 bg-graphite rounded w-2/3" />
+          </Card>
         ) : displayedProjects.length === 0 ? (
-          <div className="glass-card p-12 text-center text-gray-400 text-xs space-y-3">
-            <FiFolder className="w-12 h-12 text-dark-500 mx-auto" />
-            <h3 className="text-base font-bold text-white">No Projects in this View</h3>
-            <p className="max-w-md mx-auto">
+          <Card className="text-center py-16 px-6">
+            <FiFolder className="w-12 h-12 text-iron mx-auto mb-3" />
+            <h3 className="text-base font-semibold text-paper mb-1">
+              No Projects in this View
+            </h3>
+            <p className="text-xs font-mono text-smoke max-w-md mx-auto mb-4">
               {activeTab === "led"
                 ? "You haven't led any project teams yet. Apply to lead an open problem on the Explore page!"
                 : "No project contributions recorded."}
             </p>
             {activeTab === "led" && (
-              <Link to="/explore" className="btn-primary btn-sm inline-block mt-2">
+              <Button variant="primary" size="sm" to="/explore">
                 Explore Problems to Lead
-              </Link>
+              </Button>
             )}
-          </div>
+          </Card>
         ) : (
           <div className="space-y-6">
             {displayedProjects.map((project) => {
@@ -350,273 +370,270 @@ const Portfolio = () => {
               );
 
               return (
-                <div
+                <Card
                   key={project._id}
-                  className={`glass-card p-6 sm:p-8 space-y-6 transition-all hover:border-dark-600/80 relative overflow-hidden ${
-                    isLeader ? "border-l-4 border-l-amber-400/90 shadow-glass" : ""
-                  }`}
+                  hoverable
+                  className={isLeader ? "border-l-4 border-l-lime" : ""}
                 >
-                  {/* Top Bar */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {isLeader ? (
-                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1.5 shadow-sm">
-                          <span>👑 Team Leader</span>
-                          {leaderMember?.customRole && (
-                            <span className="text-amber-200/80 font-normal">
-                              • {leaderMember.customRole}
-                            </span>
-                          )}
-                        </span>
-                      ) : (
-                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-dark-800 text-gray-300 border border-dark-700 flex items-center gap-1.5">
-                          <FiUsers className="w-3.5 h-3.5 text-primary-400" />
-                          <span>Team Contributor</span>
-                        </span>
-                      )}
+                  <CardContent className="p-6 sm:p-8 space-y-6">
+                    {/* Top Bar */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {isLeader ? (
+                          <Badge variant="lime" size="sm">
+                            👑 Team Leader
+                            {leaderMember?.customRole && ` • ${leaderMember.customRole}`}
+                          </Badge>
+                        ) : (
+                          <Badge variant="neutral" size="sm">
+                            <FiUsers className="w-3.5 h-3.5 text-lime" />
+                            <span>Team Contributor</span>
+                          </Badge>
+                        )}
 
-                      {getStatusBadge(project.status)}
+                        {getStatusBadge(project.status)}
 
-                      {project.category && (
-                        <span className="text-xs text-gray-400 bg-dark-900/80 px-2.5 py-0.5 rounded-md border border-dark-700/60">
-                          {project.category}
-                        </span>
-                      )}
+                        {project.category && (
+                          <Badge variant="neutral" size="sm">
+                            {project.category}
+                          </Badge>
+                        )}
+                      </div>
+
+                      <div className="text-xs font-mono text-smoke flex items-center gap-1.5">
+                        <FiClock className="w-3.5 h-3.5 text-smoke" />
+                        {project.completionDate ? (
+                          <span>
+                            Delivered:{" "}
+                            <strong className="text-paper">
+                              {new Date(project.completionDate).toLocaleDateString(
+                                "en-US",
+                                {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                }
+                              )}
+                            </strong>
+                          </span>
+                        ) : (
+                          <span>Duration: {project.expectedDuration || "Active milestone"}</span>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="text-xs text-gray-400 flex items-center gap-1.5">
-                      <FiClock className="w-3.5 h-3.5 text-gray-500" />
-                      {project.completionDate ? (
-                        <span>
-                          Delivered:{" "}
-                          <strong className="text-gray-200">
-                            {new Date(project.completionDate).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
+                    {/* Title & Client Metadata */}
+                    <div className="space-y-2">
+                      <Link
+                        to={`/projects/${project._id}`}
+                        className="text-xl sm:text-2xl font-bold text-paper hover:text-lime transition font-display flex items-center gap-2 group"
+                      >
+                        <span>{project.title}</span>
+                        <FiChevronRight className="w-5 h-5 text-smoke group-hover:text-lime group-hover:translate-x-1 transition" />
+                      </Link>
+
+                      <div className="flex items-center gap-4 text-xs font-mono text-smoke flex-wrap">
+                        <span className="flex items-center gap-1.5">
+                          <FiUser className="text-lime w-3.5 h-3.5" />
+                          Client:{" "}
+                          <strong className="text-paper">
+                            {project.problemProvider?.organizationName ||
+                              project.problemProvider?.name ||
+                              "Verified Client"}
                           </strong>
                         </span>
-                      ) : (
-                        <span>Duration: {project.expectedDuration || "Active milestone"}</span>
-                      )}
-                    </div>
-                  </div>
 
-                  {/* Title & Client Metadata */}
-                  <div className="space-y-2">
-                    <Link
-                      to={`/projects/${project._id}`}
-                      className="text-xl sm:text-2xl font-bold text-white hover:text-primary-400 transition font-display flex items-center gap-2 group"
-                    >
-                      <span>{project.title}</span>
-                      <FiChevronRight className="w-5 h-5 text-gray-500 group-hover:text-primary-400 group-hover:translate-x-1 transition" />
-                    </Link>
-
-                    <div className="flex items-center gap-4 text-xs text-gray-400 flex-wrap">
-                      <span className="flex items-center gap-1.5">
-                        <FiUser className="text-accent-400 w-3.5 h-3.5" />
-                        Client / Provider:{" "}
-                        <strong className="text-gray-200">
-                          {project.problemProvider?.organizationName ||
-                            project.problemProvider?.name ||
-                            "Verified Client"}
-                        </strong>
-                      </span>
-
-                      <span className="flex items-center gap-1.5">
-                        <FiDollarSign className="text-emerald-400 w-3.5 h-3.5" />
-                        Budget:{" "}
-                        <strong className="text-gray-200">
-                          {project.budgetType === "Volunteer"
-                            ? "Volunteer Project"
-                            : `${project.currency === "INR" ? "₹" : project.currency || "₹"}${
-                                project.budgetAmount?.toLocaleString() || 0
-                              } (${project.budgetType || "Fixed"})`}
-                        </strong>
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Problem Description */}
-                  <div className="text-xs sm:text-sm text-gray-300 leading-relaxed bg-dark-900/40 p-4 rounded-2xl border border-dark-700/50">
-                    <p>{project.aiSummary || project.description}</p>
-                  </div>
-
-                  {/* Verified Solution & Production Deliverables */}
-                  {(project.solution?.completionSummary ||
-                    project.solution?.liveUrl ||
-                    project.liveUrl ||
-                    project.solution?.demoVideo) && (
-                    <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-950/30 via-dark-900/60 to-dark-900/40 border border-emerald-500/30 space-y-3">
-                      <div className="text-xs font-bold text-emerald-400 flex items-center gap-2">
-                        <FiCheckCircle className="w-4 h-4 text-emerald-400" />
-                        <span>Delivered Solution & Deliverables</span>
-                      </div>
-
-                      {project.solution?.completionSummary && (
-                        <p className="text-xs text-gray-200 leading-relaxed">
-                          {project.solution.completionSummary}
-                        </p>
-                      )}
-
-                      <div className="flex items-center gap-2.5 pt-1 flex-wrap">
-                        {(project.solution?.liveUrl || project.liveUrl) && (
-                          <a
-                            href={project.solution?.liveUrl || project.liveUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="btn-secondary btn-xs inline-flex items-center gap-1.5 text-emerald-300 hover:text-emerald-200 bg-emerald-500/10 border-emerald-500/30 hover:border-emerald-400"
-                          >
-                            <FiGlobe className="w-3.5 h-3.5" />
-                            <span>Live Application / Demo</span>
-                            <FiExternalLink className="w-3 h-3 text-emerald-400/70" />
-                          </a>
-                        )}
-
-                        {project.solution?.demoVideo && (
-                          <a
-                            href={project.solution.demoVideo}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="btn-secondary btn-xs inline-flex items-center gap-1.5 text-rose-300 hover:text-rose-200"
-                          >
-                            <FiPlayCircle className="w-3.5 h-3.5 text-rose-400" />
-                            <span>Video Walkthrough</span>
-                          </a>
-                        )}
+                        <span className="flex items-center gap-1.5">
+                          <FiDollarSign className="text-lime w-3.5 h-3.5" />
+                          Budget:{" "}
+                          <strong className="text-paper">
+                            {project.budgetType === "Volunteer"
+                              ? "Volunteer Project"
+                              : `${project.currency === "INR" ? "₹" : project.currency || "₹"}${
+                                  project.budgetAmount?.toLocaleString() || 0
+                                } (${project.budgetType || "Fixed"})`}
+                          </strong>
+                        </span>
                       </div>
                     </div>
-                  )}
 
-                  {/* Impact */}
-                  {project.impact &&
-                    (project.impact.peopleBenefited || project.impact.organizationsHelped) && (
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-2xl bg-dark-900/50 border border-dark-700/60">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-accent-500/20 text-accent-400 flex items-center justify-center font-bold text-sm">
-                            👥
-                          </div>
-                          <div>
-                            <div className="text-sm font-bold text-white font-display">
-                              {project.impact.peopleBenefited?.toLocaleString() || 0}+
-                            </div>
-                            <div className="text-[11px] text-gray-400">People Benefited</div>
-                          </div>
+                    {/* Problem Description */}
+                    <div className="text-xs font-mono text-bone leading-relaxed bg-void p-4 rounded-button border border-hairline">
+                      <p>{project.aiSummary || project.description}</p>
+                    </div>
+
+                    {/* Deliverables */}
+                    {(project.solution?.completionSummary ||
+                      project.solution?.liveUrl ||
+                      project.liveUrl ||
+                      project.solution?.demoVideo) && (
+                      <div className="p-4 sm:p-5 rounded-button bg-void border border-lime/30 space-y-3 font-mono text-xs">
+                        <div className="font-semibold text-lime flex items-center gap-2">
+                          <FiCheckCircle className="w-4 h-4 text-lime" />
+                          <span>Delivered Solution & Deliverables</span>
                         </div>
 
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">
-                            🏢
-                          </div>
-                          <div>
-                            <div className="text-sm font-bold text-white font-display">
-                              {project.impact.organizationsHelped || 0}
-                            </div>
-                            <div className="text-[11px] text-gray-400">Organizations Helped</div>
-                          </div>
-                        </div>
-
-                        {project.impact.notes && (
-                          <div className="sm:col-span-1 text-xs text-gray-300 italic flex items-center">
-                            "{project.impact.notes}"
-                          </div>
+                        {project.solution?.completionSummary && (
+                          <p className="text-bone leading-relaxed">
+                            {project.solution.completionSummary}
+                          </p>
                         )}
+
+                        <div className="flex items-center gap-2.5 pt-1 flex-wrap">
+                          {(project.solution?.liveUrl || project.liveUrl) && (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              href={project.solution?.liveUrl || project.liveUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              <FiGlobe className="w-3.5 h-3.5 text-lime" />
+                              <span>Live Application / Demo</span>
+                              <FiExternalLink className="w-3 h-3 text-smoke" />
+                            </Button>
+                          )}
+
+                          {project.solution?.demoVideo && (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              href={project.solution.demoVideo}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              <FiPlayCircle className="w-3.5 h-3.5 text-lime" />
+                              <span>Video Walkthrough</span>
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     )}
 
-                  {/* Team Members */}
-                  {project.teamMembers && project.teamMembers.length > 0 && (
-                    <div className="space-y-2 pt-2 border-t border-dark-700/50">
-                      <div className="text-xs font-semibold text-gray-400 flex items-center gap-1.5 uppercase tracking-wider">
-                        <FiUsers className="w-3.5 h-3.5 text-primary-400" />
-                        <span>
-                          Engineering Team ({project.teamMembers.length} / {project.maxTeamSize || 5} members)
-                        </span>
-                      </div>
+                    {/* Impact */}
+                    {project.impact &&
+                      (project.impact.peopleBenefited || project.impact.organizationsHelped) && (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-button bg-void border border-hairline font-mono text-xs">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-button bg-graphite border border-hairline text-lime flex items-center justify-center font-bold text-sm">
+                              👥
+                            </div>
+                            <div>
+                              <div className="text-sm font-bold text-paper">
+                                {project.impact.peopleBenefited?.toLocaleString() || 0}+
+                              </div>
+                              <div className="text-[11px] text-smoke">People Benefited</div>
+                            </div>
+                          </div>
 
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        {project.teamMembers.map((member, mIdx) => {
-                          const isMemLeader = member.role === "Leader";
-                          return (
-                            <div
-                              key={mIdx}
-                              className={`p-2 rounded-xl text-xs flex items-center gap-2 border ${
-                                isMemLeader
-                                  ? "bg-amber-500/10 border-amber-500/30 text-amber-200"
-                                  : "bg-dark-900/60 border-dark-700/60 text-gray-300"
-                              }`}
-                            >
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-button bg-graphite border border-hairline text-lime flex items-center justify-center font-bold text-sm">
+                              🏢
+                            </div>
+                            <div>
+                              <div className="text-sm font-bold text-paper">
+                                {project.impact.organizationsHelped || 0}
+                              </div>
+                              <div className="text-[11px] text-smoke">Organizations Helped</div>
+                            </div>
+                          </div>
+
+                          {project.impact.notes && (
+                            <div className="sm:col-span-1 text-smoke italic flex items-center">
+                              "{project.impact.notes}"
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                    {/* Team Members */}
+                    {project.teamMembers && project.teamMembers.length > 0 && (
+                      <div className="space-y-2 pt-2 border-t border-hairline">
+                        <div className="text-xs font-mono uppercase tracking-wider text-smoke flex items-center gap-1.5">
+                          <FiUsers className="w-3.5 h-3.5 text-lime" />
+                          <span>
+                            Engineering Team ({project.teamMembers.length} / {project.maxTeamSize || 5} members)
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2 pt-1 font-mono text-xs">
+                          {project.teamMembers.map((member, mIdx) => {
+                            const isMemLeader = member.role === "Leader";
+                            return (
                               <div
-                                className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                                key={mIdx}
+                                className={`p-2 rounded-button flex items-center gap-2 border ${
                                   isMemLeader
-                                    ? "bg-amber-500 text-dark-950"
-                                    : "bg-primary-600 text-white"
+                                    ? "bg-carbon border-lime/40 text-paper"
+                                    : "bg-void border-hairline text-bone"
                                 }`}
                               >
-                                {member.user?.name ? member.user.name.charAt(0) : "M"}
+                                <div
+                                  className={`w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold ${
+                                    isMemLeader
+                                      ? "bg-lime text-black"
+                                      : "bg-graphite text-lime"
+                                  }`}
+                                >
+                                  {member.user?.name ? member.user.name.charAt(0) : "M"}
+                                </div>
+                                <div className="leading-tight">
+                                  <p className="font-semibold text-paper truncate max-w-[120px]">
+                                    {member.user?.name || "Developer"}
+                                  </p>
+                                  <p className="text-[10px] text-smoke">
+                                    {member.customRole || member.role}
+                                  </p>
+                                </div>
                               </div>
-                              <div className="leading-tight">
-                                <p className="font-semibold text-white truncate max-w-[120px]">
-                                  {member.user?.name || "Developer"}
-                                </p>
-                                <p className="text-[10px] text-gray-400">
-                                  {member.customRole || member.role}
-                                </p>
-                              </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Footer & Link */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-dark-700/60">
-                    <div className="flex flex-wrap gap-1.5 items-center">
-                      <span className="text-xs text-gray-400 mr-1 flex items-center gap-1">
-                        <FiCode className="w-3.5 h-3.5" /> Stack:
-                      </span>
-                      {project.requiredSkills && project.requiredSkills.length > 0 ? (
-                        project.requiredSkills.map((sk, sIdx) => (
-                          <span
-                            key={sIdx}
-                            className="badge badge-primary text-[11px] py-0.5 px-2 bg-dark-900/80 border border-primary-500/20 text-primary-300"
-                          >
-                            {sk}
-                          </span>
-                        ))
-                      ) : project.preferredTechnologies ? (
-                        project.preferredTechnologies.split(",").map((tech, tIdx) => (
-                          <span
-                            key={tIdx}
-                            className="badge badge-primary text-[11px] py-0.5 px-2 bg-dark-900/80 border border-primary-500/20 text-primary-300"
-                          >
-                            {tech.trim()}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="text-xs text-gray-500 italic">Full Stack Stack</span>
-                      )}
-                    </div>
+                    {/* Footer & Stack */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-hairline">
+                      <div className="flex flex-wrap gap-1.5 items-center">
+                        <span className="text-xs font-mono text-smoke mr-1 flex items-center gap-1">
+                          <FiCode className="w-3.5 h-3.5 text-lime" /> Stack:
+                        </span>
+                        {project.requiredSkills && project.requiredSkills.length > 0 ? (
+                          project.requiredSkills.map((sk, sIdx) => (
+                            <Badge key={sIdx} variant="neutral" size="sm">
+                              {sk}
+                            </Badge>
+                          ))
+                        ) : project.preferredTechnologies ? (
+                          project.preferredTechnologies.split(",").map((tech, tIdx) => (
+                            <Badge key={tIdx} variant="neutral" size="sm">
+                              {tech.trim()}
+                            </Badge>
+                          ))
+                        ) : (
+                          <span className="text-xs font-mono text-smoke italic">Full Stack</span>
+                        )}
+                      </div>
 
-                    <Link
-                      to={`/projects/${project._id}`}
-                      className="btn-primary btn-xs flex items-center gap-1.5 self-end sm:self-center"
-                    >
-                      <span>View Project Workspace</span>
-                      <FiExternalLink className="w-3 h-3" />
-                    </Link>
-                  </div>
-                </div>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        to={`/projects/${project._id}`}
+                        className="self-end sm:self-center"
+                      >
+                        <span>View Workspace</span>
+                        <FiExternalLink className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               );
             })}
           </div>
         )}
       </div>
-    </div>
+    </Container>
   );
 };
 
 export default Portfolio;
-

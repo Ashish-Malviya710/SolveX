@@ -1,7 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { FiCheckSquare, FiCheck, FiX, FiFolder, FiAlertCircle } from "react-icons/fi";
+import { FiCheckSquare, FiCheck, FiX, FiCalendar } from "react-icons/fi";
 import api from "../../services/api";
+import {
+  Container,
+  PageHeader,
+  Card,
+  CardContent,
+  Button,
+  Badge,
+  Select,
+  Textarea,
+} from "../../components/ui";
 
 const ProposalReview = () => {
   const [projects, setProjects] = useState([]);
@@ -52,7 +61,9 @@ const ProposalReview = () => {
       const res = await api.get(`/projects/${selectedProjectId}/proposal`);
       setProposal(res.data?.proposal || null);
     } catch (err) {
-      setActionError(err.response?.data?.message || "Failed to approve proposal.");
+      setActionError(
+        err.response?.data?.message || "Failed to approve proposal."
+      );
     }
   };
 
@@ -64,172 +75,202 @@ const ProposalReview = () => {
     setActionError("");
     setActionSuccess("");
     try {
-      await api.post(`/proposals/${proposal._id}/request-changes`, { feedback });
+      await api.post(`/proposals/${proposal._id}/request-changes`, {
+        feedback,
+      });
       setActionSuccess("Changes requested from Project Leader.");
       setFeedback("");
       const res = await api.get(`/projects/${selectedProjectId}/proposal`);
       setProposal(res.data?.proposal || null);
     } catch (err) {
-      setActionError(err.response?.data?.message || "Failed to request changes.");
+      setActionError(
+        err.response?.data?.message || "Failed to request changes."
+      );
     }
   };
 
   return (
-    <div className="page-container max-w-4xl space-y-6">
-      <div className="section-header">
-        <span className="badge badge-accent mb-2">Structure Review</span>
-        <h1 className="section-title">Review Project Proposals</h1>
-        <p className="section-subtitle">
-          Inspect architecture proposals, tech stacks, and milestone roadmaps before approving development start.
-        </p>
-      </div>
+    <Container className="py-8">
+      <PageHeader
+        eyebrow="Structure Review"
+        title="Review Project Proposals"
+        description="Inspect architecture proposals, tech stacks, and milestone roadmaps before approving development start."
+      />
 
       {actionSuccess && (
-        <div className="p-3.5 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs rounded-xl flex items-center justify-between">
+        <div className="mb-6 p-3.5 bg-lime/10 border border-lime/30 text-lime text-xs font-mono rounded-button flex items-center justify-between">
           <span>{actionSuccess}</span>
-          <button onClick={() => setActionSuccess("")}>✕</button>
+          <button
+            onClick={() => setActionSuccess("")}
+            className="text-smoke hover:text-paper"
+          >
+            ✕
+          </button>
         </div>
       )}
 
       {actionError && (
-        <div className="p-3.5 bg-red-500/20 border border-red-500/40 text-red-300 text-xs rounded-xl flex items-center justify-between">
+        <div className="mb-6 p-3.5 bg-red-950/30 border border-red-500/40 text-red-300 text-xs font-mono rounded-button flex items-center justify-between">
           <span>{actionError}</span>
-          <button onClick={() => setActionError("")}>✕</button>
+          <button
+            onClick={() => setActionError("")}
+            className="text-smoke hover:text-paper"
+          >
+            ✕
+          </button>
         </div>
       )}
 
       {/* Project Selector Bar */}
       {projects.length > 0 && (
-        <div className="glass-card p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <label className="text-xs font-semibold text-gray-300">Select Posted Project:</label>
-          <select
-            value={selectedProjectId}
-            onChange={(e) => setSelectedProjectId(e.target.value)}
-            className="select-field text-xs sm:w-80"
-          >
-            {projects.map((p) => (
-              <option key={p._id} value={p._id}>
-                {p.title} ({p.status})
-              </option>
-            ))}
-          </select>
-        </div>
+        <Card className="mb-6">
+          <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <label className="text-xs font-mono uppercase tracking-wider text-smoke">
+              Select Posted Problem:
+            </label>
+            <div className="w-full sm:w-96">
+              <Select
+                value={selectedProjectId}
+                onChange={(e) => setSelectedProjectId(e.target.value)}
+              >
+                {projects.map((p) => (
+                  <option key={p._id} value={p._id}>
+                    {p.title} ({p.status})
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Proposal Card */}
       {!proposal ? (
-        <div className="empty-state glass-card p-12">
-          <FiCheckSquare className="empty-state-icon" />
-          <h3 className="text-base font-bold text-white mb-1">No Proposal Submitted</h3>
-          <p className="empty-state-text text-xs">
-            The selected Project Leader has not submitted a milestone proposal for this problem yet.
+        <Card className="text-center py-16 px-6">
+          <FiCheckSquare className="w-10 h-10 text-iron mx-auto mb-3" />
+          <h3 className="text-base font-semibold text-paper mb-1">
+            No Proposal Submitted
+          </h3>
+          <p className="text-xs text-smoke font-mono">
+            The assigned Project Leader has not submitted a milestone proposal for this problem yet.
           </p>
-        </div>
+        </Card>
       ) : (
-        <div className="glass-card p-6 sm:p-8 space-y-6">
-          <div className="flex items-center justify-between pb-4 border-b border-dark-700/60">
-            <div>
-              <h3 className="text-base font-bold text-white">Project Proposal</h3>
-              <span className="text-xs text-gray-400">
-                Submitted by Leader <strong className="text-primary-400">{proposal.leader?.name}</strong>
-              </span>
-            </div>
-            <span
-              className={`badge text-xs ${
-                proposal.status === "APPROVED"
-                  ? "badge-success"
-                  : proposal.status === "CHANGES_REQUESTED"
-                  ? "badge-danger"
-                  : "badge-primary"
-              }`}
-            >
-              {proposal.status}
-            </span>
-          </div>
-
-          <div className="space-y-4 text-xs">
-            <div>
-              <span className="font-semibold text-gray-400 uppercase tracking-wider block mb-1">
-                Solution Approach
-              </span>
-              <p className="text-gray-200 leading-relaxed bg-dark-900/60 p-4 rounded-xl border border-dark-700">
-                {proposal.description}
-              </p>
-            </div>
-
-            {proposal.technologyStack?.length > 0 && (
+        <Card>
+          <CardContent className="p-6 sm:p-8 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-hairline gap-3">
               <div>
-                <span className="font-semibold text-gray-400 uppercase tracking-wider block mb-1">
-                  Proposed Tech Stack
+                <h3 className="text-base font-semibold text-paper">
+                  Project Execution Plan
+                </h3>
+                <span className="text-xs text-smoke font-mono">
+                  Submitted by Leader:{" "}
+                  <strong className="text-lime">{proposal.leader?.name}</strong>
                 </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {proposal.technologyStack.map((t, idx) => (
-                    <span key={idx} className="badge badge-neutral py-0.5 px-2">
-                      {t}
-                    </span>
+              </div>
+              <Badge
+                variant={
+                  proposal.status === "APPROVED"
+                    ? "success"
+                    : proposal.status === "CHANGES_REQUESTED"
+                    ? "danger"
+                    : "warning"
+                }
+                size="md"
+              >
+                {proposal.status}
+              </Badge>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <span className="text-xs font-mono uppercase tracking-wider text-smoke block mb-1.5">
+                  Solution Approach & Architecture
+                </span>
+                <p className="text-xs text-bone font-mono leading-relaxed bg-void p-4 rounded-button border border-hairline">
+                  {proposal.description}
+                </p>
+              </div>
+
+              {proposal.technologyStack?.length > 0 && (
+                <div>
+                  <span className="text-xs font-mono uppercase tracking-wider text-smoke block mb-1.5">
+                    Proposed Tech Stack
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {proposal.technologyStack.map((t, idx) => (
+                      <Badge key={idx} variant="neutral" size="sm">
+                        {t}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Milestones */}
+              <div className="space-y-3 pt-2">
+                <span className="text-xs font-mono uppercase tracking-wider text-smoke block">
+                  Target Milestones & Deadlines
+                </span>
+                <div className="space-y-2">
+                  {proposal.milestones?.map((m, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3 bg-void border border-hairline rounded-button flex items-center justify-between gap-4 font-mono text-xs"
+                    >
+                      <span className="font-semibold text-paper">{m.title}</span>
+                      <div className="flex items-center gap-3 shrink-0">
+                        {m.deadline && (
+                          <span className="text-smoke text-[11px] flex items-center gap-1">
+                            <FiCalendar className="w-3.5 h-3.5" />
+                            {new Date(m.deadline).toLocaleDateString()}
+                          </span>
+                        )}
+                        <Badge variant="neutral" size="sm">
+                          {m.status}
+                        </Badge>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
-            )}
-
-            {/* Milestones */}
-            <div className="space-y-2 pt-2">
-              <span className="font-semibold text-gray-400 uppercase tracking-wider block">
-                Target Milestones & Deadlines
-              </span>
-              <div className="space-y-2">
-                {proposal.milestones?.map((m, idx) => (
-                  <div
-                    key={idx}
-                    className="p-3 bg-dark-900/80 border border-dark-700 rounded-xl flex items-center justify-between"
-                  >
-                    <span className="font-bold text-white">{m.title}</span>
-                    <div className="flex items-center gap-3">
-                      {m.deadline && (
-                        <span className="text-gray-400 text-[11px]">
-                          {new Date(m.deadline).toLocaleDateString()}
-                        </span>
-                      )}
-                      <span className="badge badge-primary text-[10px]">{m.status}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
-          </div>
 
-          {/* Action Area */}
-          {proposal.status === "SUBMITTED" && (
-            <div className="pt-6 border-t border-dark-700/60 space-y-4">
-              <div>
-                <label className="input-label text-xs">Requested Revisions / Feedback Note</label>
-                <textarea
-                  rows={2}
-                  placeholder="If requesting changes, explain what needs adjustment..."
+            {/* Action Area */}
+            {proposal.status === "SUBMITTED" && (
+              <div className="pt-6 border-t border-hairline space-y-4">
+                <Textarea
+                  label="Requested Revisions / Feedback Note"
+                  rows={3}
+                  placeholder="If requesting revisions, explain specifically what architecture or milestone changes are required..."
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
-                  className="textarea-field text-xs"
                 />
-              </div>
 
-              <div className="flex gap-3">
-                <button onClick={handleApprove} className="btn-success btn-sm flex items-center gap-1.5">
-                  <FiCheck className="w-4 h-4" />
-                  <span>Approve & Authorize Development</span>
-                </button>
-                <button
-                  onClick={handleRequestChanges}
-                  className="btn-secondary btn-sm text-red-400 flex items-center gap-1.5"
-                >
-                  <FiX className="w-4 h-4" />
-                  <span>Request Revisions</span>
-                </button>
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={handleApprove}
+                  >
+                    <FiCheck className="w-4 h-4" />
+                    <span>Approve & Authorize Development</span>
+                  </Button>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={handleRequestChanges}
+                  >
+                    <FiX className="w-4 h-4" />
+                    <span>Request Revisions</span>
+                  </Button>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </CardContent>
+        </Card>
       )}
-    </div>
+    </Container>
   );
 };
 

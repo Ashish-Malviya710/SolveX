@@ -4,6 +4,7 @@ import { AuthProvider } from "./context/AuthContext";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
+import PublicOnlyRoute from "./components/PublicOnlyRoute";
 import AIAgentWidget from "./components/AIAgentWidget";
 
 // Public Pages
@@ -43,15 +44,36 @@ function App() {
           <Navbar />
           <main className="flex-grow">
             <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<LandingPage />} />
+              {/* Public-only routes: redirect to dashboard if authenticated */}
+              <Route
+                path="/"
+                element={
+                  <PublicOnlyRoute>
+                    <LandingPage />
+                  </PublicOnlyRoute>
+                }
+              />
               <Route path="/explore" element={<ExploreProblems />} />
               <Route path="/projects/:id" element={<ProjectDetails />} />
               <Route path="/showcase" element={<Showcase />} />
               <Route path="/developers" element={<DeveloperShowcase />} />
               <Route path="/developers/:id" element={<DeveloperProfile />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
+              <Route
+                path="/login"
+                element={
+                  <PublicOnlyRoute>
+                    <Login />
+                  </PublicOnlyRoute>
+                }
+              />
+              <Route
+                path="/register"
+                element={
+                  <PublicOnlyRoute>
+                    <Register />
+                  </PublicOnlyRoute>
+                }
+              />
 
               {/* Developer Routes */}
               <Route

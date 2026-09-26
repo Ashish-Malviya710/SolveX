@@ -17,19 +17,28 @@ import {
   FiUsers,
   FiLayers,
   FiClock,
-  FiFileText,
   FiPlayCircle,
-  FiStar,
-  FiEye,
   FiShield,
   FiGlobe,
-  FiActivity,
   FiInfo,
   FiChevronRight,
   FiSearch,
 } from "react-icons/fi";
 import { AuthContext } from "../../context/AuthContext";
 import api from "../../services/api";
+import {
+  Container,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Button,
+  Badge,
+  Input,
+  Select,
+  Textarea,
+  Modal,
+} from "../../components/ui";
 
 const DeveloperProfile = () => {
   const { id } = useParams();
@@ -77,7 +86,15 @@ const DeveloperProfile = () => {
       const res = await api.get("/projects/my-projects");
       const activeProblems = (res.data.projects || []).filter(
         (p) =>
-          ["OPEN", "LEADER_SELECTED", "TEAM_FORMING", "PROPOSAL_PENDING", "CHANGES_REQUESTED", "APPROVED", "IN_DEVELOPMENT"].includes(p.status) &&
+          [
+            "OPEN",
+            "LEADER_SELECTED",
+            "TEAM_FORMING",
+            "PROPOSAL_PENDING",
+            "CHANGES_REQUESTED",
+            "APPROVED",
+            "IN_DEVELOPMENT",
+          ].includes(p.status) &&
           (!p.teamMembers || p.teamMembers.length < (p.maxTeamSize || 5))
       );
       setMyProblems(activeProblems);
@@ -92,7 +109,9 @@ const DeveloperProfile = () => {
   const handleSendInvite = async (e) => {
     e.preventDefault();
     if (!selectedProject) {
-      setInviteError("Please select an active project to invite this developer to.");
+      setInviteError(
+        "Please select an active project to invite this developer to."
+      );
       return;
     }
     setInviting(true);
@@ -106,13 +125,14 @@ const DeveloperProfile = () => {
         setInviteModalOpen(false);
       }, 1500);
     } catch (err) {
-      setInviteError(err.response?.data?.message || "Failed to send invitation.");
+      setInviteError(
+        err.response?.data?.message || "Failed to send invitation."
+      );
     } finally {
       setInviting(false);
     }
   };
 
-  // Filter projects depending on active tab, status, and search
   const displayedProjects = (() => {
     let list = [];
     if (activeTab === "led") {
@@ -145,363 +165,351 @@ const DeveloperProfile = () => {
     switch (status) {
       case "COMPLETED":
         return (
-          <span className="badge badge-success text-xs py-1 px-3 flex items-center gap-1.5 shadow-sm">
+          <Badge variant="success" size="sm">
             <FiCheckCircle className="w-3.5 h-3.5" /> Completed & Delivered
-          </span>
+          </Badge>
         );
       case "IN_DEVELOPMENT":
         return (
-          <span className="badge badge-primary text-xs py-1 px-3 flex items-center gap-1.5 shadow-sm">
+          <Badge variant="lime" size="sm">
             <FiCode className="w-3.5 h-3.5" /> In Active Development
-          </span>
+          </Badge>
         );
       case "SUBMITTED":
       case "UNDER_REVIEW":
         return (
-          <span className="badge badge-warning text-xs py-1 px-3 flex items-center gap-1.5 shadow-sm">
+          <Badge variant="warning" size="sm">
             <FiClock className="w-3.5 h-3.5" /> Under Provider Review
-          </span>
+          </Badge>
         );
       case "APPROVED":
         return (
-          <span className="badge badge-accent text-xs py-1 px-3 flex items-center gap-1.5 shadow-sm">
+          <Badge variant="success" size="sm">
             <FiCheckCircle className="w-3.5 h-3.5" /> Proposal Approved
-          </span>
+          </Badge>
         );
       default:
         return (
-          <span className="badge badge-neutral text-xs py-1 px-3 flex items-center gap-1.5 shadow-sm">
+          <Badge variant="neutral" size="sm">
             <FiLayers className="w-3.5 h-3.5" /> {status?.replace(/_/g, " ")}
-          </span>
+          </Badge>
         );
     }
   };
 
   if (loading) {
     return (
-      <div className="page-container max-w-5xl py-12 space-y-6">
-        <div className="glass-card p-8 animate-pulse space-y-4">
-          <div className="skeleton-avatar w-20 h-20" />
-          <div className="skeleton-title" />
-          <div className="skeleton-text" />
-        </div>
-      </div>
+      <Container className="py-12 max-w-5xl">
+        <Card className="animate-pulse p-8">
+          <div className="w-20 h-20 bg-graphite rounded-lg mb-4" />
+          <div className="h-6 bg-graphite rounded w-1/3 mb-2" />
+          <div className="h-4 bg-graphite rounded w-1/2" />
+        </Card>
+      </Container>
     );
   }
 
   if (!developer) {
     return (
-      <div className="page-container text-center py-20">
-        <div className="glass-card max-w-md mx-auto p-8 space-y-4">
-          <FiUser className="w-12 h-12 text-dark-500 mx-auto" />
-          <h2 className="text-xl font-bold text-white">Developer Not Found</h2>
-          <p className="text-xs text-gray-400">This profile does not exist or has been removed.</p>
-          <Link to="/developers" className="btn-secondary btn-sm inline-block">
+      <Container className="py-20 text-center">
+        <Card className="max-w-md mx-auto p-8 space-y-4">
+          <FiUser className="w-12 h-12 text-iron mx-auto" />
+          <h2 className="text-xl font-bold text-paper">Developer Not Found</h2>
+          <p className="text-xs font-mono text-smoke">
+            This profile does not exist or has been removed.
+          </p>
+          <Button variant="secondary" size="sm" to="/developers">
             Back to Top Developers
-          </Link>
-        </div>
-      </div>
+          </Button>
+        </Card>
+      </Container>
     );
   }
 
   return (
-    <div className="page-container max-w-5xl space-y-8 pb-16">
+    <Container className="py-8 max-w-5xl space-y-8 pb-16">
       {/* Profile Header Card */}
-      <div className="glass-card p-8 sm:p-10 relative overflow-hidden">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-          <div className="flex items-start sm:items-center gap-6">
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-gradient-to-tr from-primary-600 via-accent-500 to-emerald-400 flex items-center justify-center text-white font-extrabold text-3xl shadow-glow-md flex-shrink-0">
-              {developer.name ? developer.name.charAt(0).toUpperCase() : "D"}
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-white font-display">
-                  {developer.name}
-                </h1>
-                {developer.availability ? (
-                  <span className="badge badge-success text-xs py-0.5 px-2.5">
-                    ● Available for Projects
-                  </span>
-                ) : (
-                  <span className="badge badge-neutral text-xs py-0.5 px-2.5">
-                    ● Currently Busy
-                  </span>
-                )}
-                {ledProjects.length > 0 && (
-                  <span className="badge bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs py-0.5 px-2.5 flex items-center gap-1 font-semibold">
-                    👑 Verified Project Leader
-                  </span>
-                )}
+      <Card>
+        <CardContent className="p-8 sm:p-10 space-y-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+            <div className="flex items-start sm:items-center gap-6">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg bg-graphite border border-hairline flex items-center justify-center text-lime font-mono font-bold text-3xl shrink-0">
+                {developer.name ? developer.name.charAt(0).toUpperCase() : "D"}
               </div>
 
-              <div className="flex items-center gap-4 text-xs text-gray-400 flex-wrap">
-                {developer.address && (
-                  <span className="flex items-center gap-1">
-                    <FiMapPin className="text-primary-400" /> {developer.address}
-                  </span>
-                )}
-                {developer.email && (
-                  <span className="flex items-center gap-1">
-                    <FiMail className="text-accent-400" /> {developer.email}
-                  </span>
-                )}
-                {developer.mobileNumber && (
-                  <span className="flex items-center gap-1">
-                    <FiPhone className="text-emerald-400" /> {developer.mobileNumber}
-                  </span>
-                )}
+              <div className="space-y-2">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-paper font-display">
+                    {developer.name}
+                  </h1>
+                  {developer.availability ? (
+                    <Badge variant="lime" size="sm" dot>
+                      Available for Projects
+                    </Badge>
+                  ) : (
+                    <Badge variant="neutral" size="sm">
+                      Currently Busy
+                    </Badge>
+                  )}
+                  {ledProjects.length > 0 && (
+                    <Badge variant="warning" size="sm">
+                      👑 Verified Project Leader
+                    </Badge>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-4 text-xs font-mono text-smoke flex-wrap">
+                  {developer.address && (
+                    <span className="flex items-center gap-1">
+                      <FiMapPin className="text-lime" /> {developer.address}
+                    </span>
+                  )}
+                  {developer.email && (
+                    <span className="flex items-center gap-1">
+                      <FiMail className="text-lime" /> {developer.email}
+                    </span>
+                  )}
+                  {developer.mobileNumber && (
+                    <span className="flex items-center gap-1">
+                      <FiPhone className="text-lime" /> {developer.mobileNumber}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
+
+            {/* Action button: Invite if current user is Problem Provider */}
+            {currentUser &&
+              currentUser.role === "PROBLEM_PROVIDER" &&
+              currentUser._id !== developer._id && (
+                <Button
+                  variant="primary"
+                  size="md"
+                  onClick={handleOpenInviteModal}
+                  className="w-full sm:w-auto"
+                >
+                  <FiSend className="w-4 h-4" />
+                  <span>Invite to Lead Problem</span>
+                </Button>
+              )}
           </div>
 
-          {/* Action button: Invite if current user is Problem Provider */}
-          {currentUser && currentUser.role === "PROBLEM_PROVIDER" && currentUser._id !== developer._id && (
-            <button
-              onClick={handleOpenInviteModal}
-              className="btn-accent flex items-center gap-2 w-full sm:w-auto justify-center"
-            >
-              <FiSend className="w-4 h-4" />
-              <span>Invite to Lead Problem</span>
-            </button>
-          )}
-        </div>
-
-        {/* Social / Portfolio Links */}
-        <div className="flex items-center gap-3 pt-6 mt-6 border-t border-dark-700/60 flex-wrap">
-          {developer.githubProfile && (
-            <a
-              href={developer.githubProfile}
-              target="_blank"
-              rel="noreferrer"
-              className="btn-secondary btn-sm flex items-center gap-2 text-xs"
-            >
-              <FiGithub className="w-4 h-4 text-emerald-400" />
-              <span>GitHub</span>
-              <FiExternalLink className="w-3 h-3 text-gray-500" />
-            </a>
-          )}
-          {developer.linkedinOrPortfolio && (
-            <a
-              href={developer.linkedinOrPortfolio}
-              target="_blank"
-              rel="noreferrer"
-              className="btn-secondary btn-sm flex items-center gap-2 text-xs"
-            >
-              <FiLinkedin className="w-4 h-4 text-primary-400" />
-              <span>LinkedIn / Portfolio</span>
-              <FiExternalLink className="w-3 h-3 text-gray-500" />
-            </a>
-          )}
-        </div>
-      </div>
+          {/* Social / Portfolio Links */}
+          <div className="flex items-center gap-3 pt-6 border-t border-hairline flex-wrap">
+            {developer.githubProfile && (
+              <Button
+                variant="secondary"
+                size="sm"
+                href={developer.githubProfile}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <FiGithub className="text-lime" />
+                <span>GitHub</span>
+                <FiExternalLink className="w-3 h-3 text-smoke" />
+              </Button>
+            )}
+            {developer.linkedinOrPortfolio && (
+              <Button
+                variant="secondary"
+                size="sm"
+                href={developer.linkedinOrPortfolio}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <FiLinkedin className="text-lime" />
+                <span>LinkedIn / Portfolio</span>
+                <FiExternalLink className="w-3 h-3 text-smoke" />
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Grid: Stats & Bio & Skills */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Left Column: Reputation & Stats */}
-        <div className="glass-card p-6 space-y-6">
-          <div>
-            <span className="input-label text-xs">Reputation Score</span>
-            <div className="text-3xl font-extrabold text-accent-400 font-display mt-1">
-              {developer.reputation || 0} <span className="text-sm font-normal text-gray-400">pts</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-dark-700/60">
+        <Card>
+          <CardContent className="p-6 space-y-6">
             <div>
-              <div className="text-xl font-bold text-white font-display">
-                {developer.projectsCompleted || 0}
+              <span className="text-xs font-mono uppercase tracking-wider text-smoke block">
+                Reputation Score
+              </span>
+              <div className="text-3xl font-mono font-bold text-lime mt-1">
+                {developer.reputation || 0}{" "}
+                <span className="text-xs font-normal text-smoke">pts</span>
               </div>
-              <div className="text-xs text-gray-400">Total Completed</div>
             </div>
-            <div>
-              <div className="text-xl font-bold text-amber-400 font-display flex items-center gap-1">
-                <span>👑</span>
-                <span>{ledProjects.length || developer.projectsLed || 0}</span>
-              </div>
-              <div className="text-xs text-gray-400">Projects Led</div>
-            </div>
-          </div>
 
-          {/* Badges Section */}
-          <div className="pt-4 border-t border-dark-700/60 space-y-3">
-            <span className="input-label text-xs flex items-center gap-1.5 text-amber-300">
-              <FiAward className="w-4 h-4" /> Earned Badges
-            </span>
-            {developer.badges && developer.badges.length > 0 ? (
-              <div className="flex flex-col gap-2">
-                {developer.badges.map((b, idx) => (
-                  <div
-                    key={idx}
-                    className="p-2.5 rounded-xl bg-dark-900/60 border border-dark-700/60 flex items-center gap-2 text-xs text-gray-200"
-                  >
-                    <span className="text-base">🏆</span>
-                    <span className="font-semibold">{b}</span>
-                  </div>
-                ))}
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-hairline font-mono">
+              <div>
+                <div className="text-xl font-bold text-paper">
+                  {developer.projectsCompleted || 0}
+                </div>
+                <div className="text-xs text-smoke">Total Completed</div>
               </div>
-            ) : (
-              <p className="text-xs text-gray-500 italic">No badges awarded yet.</p>
-            )}
-          </div>
-        </div>
+              <div>
+                <div className="text-xl font-bold text-lime flex items-center gap-1">
+                  <span>👑</span>
+                  <span>{ledProjects.length || developer.projectsLed || 0}</span>
+                </div>
+                <div className="text-xs text-smoke">Projects Led</div>
+              </div>
+            </div>
+
+            {/* Badges Section */}
+            <div className="pt-4 border-t border-hairline space-y-3">
+              <span className="text-xs font-mono uppercase tracking-wider text-smoke flex items-center gap-1.5">
+                <FiAward className="w-4 h-4 text-lime" /> Earned Badges
+              </span>
+              {developer.badges && developer.badges.length > 0 ? (
+                <div className="flex flex-col gap-2">
+                  {developer.badges.map((b, idx) => (
+                    <div
+                      key={idx}
+                      className="p-2.5 rounded-button bg-void border border-hairline flex items-center gap-2 text-xs font-mono text-bone"
+                    >
+                      <span>🏆</span>
+                      <span className="font-semibold text-paper">{b}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs font-mono text-smoke italic">
+                  No badges awarded yet.
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Right Column: Bio, Skills & Experience */}
-        <div className="md:col-span-2 glass-card p-6 sm:p-8 space-y-6">
-          {/* Bio */}
-          <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">
-              About Developer
-            </h3>
-            <p className="text-sm text-gray-300 leading-relaxed">
-              {developer.bio || "No bio provided."}
-            </p>
-          </div>
-
-          {/* Experience */}
-          {developer.experience && (
-            <div className="space-y-2 pt-4 border-t border-dark-700/60">
-              <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">
-                Experience & Background
+        <Card className="md:col-span-2">
+          <CardContent className="p-6 sm:p-8 space-y-6">
+            <div className="space-y-2">
+              <h3 className="text-xs font-mono uppercase tracking-wider text-smoke">
+                About Developer
               </h3>
-              <p className="text-sm text-gray-300 leading-relaxed">
-                {developer.experience}
+              <p className="text-xs font-mono text-bone leading-relaxed whitespace-pre-line bg-void p-4 rounded-button border border-hairline">
+                {developer.bio || "No bio provided."}
               </p>
             </div>
-          )}
 
-          {/* Skills */}
-          <div className="space-y-2 pt-4 border-t border-dark-700/60">
-            <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">
-              Verified & Technical Skills
-            </h3>
-            {developer.skills && developer.skills.length > 0 ? (
-              <div className="flex flex-wrap gap-2 pt-1">
-                {developer.skills.map((s, idx) => (
-                  <span
-                    key={idx}
-                    className="badge badge-primary text-xs py-1 px-3 border border-primary-500/30"
-                  >
-                    {s}
-                  </span>
-                ))}
+            {developer.experience && (
+              <div className="space-y-2 pt-4 border-t border-hairline">
+                <h3 className="text-xs font-mono uppercase tracking-wider text-smoke">
+                  Experience & Background
+                </h3>
+                <p className="text-xs font-mono text-bone leading-relaxed whitespace-pre-line bg-void p-4 rounded-button border border-hairline">
+                  {developer.experience}
+                </p>
               </div>
-            ) : (
-              <p className="text-xs text-gray-500 italic">No skills listed.</p>
             )}
-          </div>
-        </div>
+
+            <div className="space-y-2 pt-4 border-t border-hairline">
+              <h3 className="text-xs font-mono uppercase tracking-wider text-smoke">
+                Verified Technical Skills
+              </h3>
+              {developer.skills && developer.skills.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {developer.skills.map((s, idx) => (
+                    <Badge key={idx} variant="neutral" size="sm">
+                      {s}
+                    </Badge>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs font-mono text-smoke italic">
+                  No skills listed.
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* ─────────────────────────────────────────────────────────────
-          PROJECTS DEVELOPED AS LEADER & TEAM LEADER (SHOWCASE SECTION)
-         ───────────────────────────────────────────────────────────── */}
+      {/* Leadership & Project Portfolio */}
       <div className="space-y-6 pt-4">
-        {/* Section Title & Navigation Tabs */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-dark-700/80 pb-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-hairline pb-4">
           <div>
             <div className="flex items-center gap-2">
-              <span className="p-1.5 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                <FiShield className="w-5 h-5" />
-              </span>
-              <h2 className="text-xl sm:text-2xl font-extrabold text-white font-display">
+              <FiShield className="w-5 h-5 text-lime" />
+              <h2 className="text-xl sm:text-2xl font-bold text-paper font-display">
                 Leadership & Project Portfolio
               </h2>
             </div>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs font-mono text-smoke mt-1">
               Verified projects architected and delivered by {developer.name} as Team Leader.
             </p>
           </div>
 
-          {/* Tabs */}
-          <div className="flex items-center gap-2 p-1 rounded-xl bg-dark-900/80 border border-dark-700/60 flex-wrap">
-            <button
+          <div className="flex items-center gap-2">
+            <Button
+              variant={activeTab === "led" ? "primary" : "ghost"}
+              size="sm"
               onClick={() => setActiveTab("led")}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
-                activeTab === "led"
-                  ? "bg-amber-500 text-dark-950 font-bold shadow-glow-sm"
-                  : "text-gray-300 hover:text-white hover:bg-dark-800"
-              }`}
             >
-              <span>👑 Projects Led</span>
-              <span className="px-1.5 py-0.2 rounded-md bg-dark-950/20 text-[10px]">
-                {ledProjects.length}
-              </span>
-            </button>
+              <span>👑 Projects Led ({ledProjects.length})</span>
+            </Button>
 
             {contributedProjects.length > 0 && (
-              <button
+              <Button
+                variant={activeTab === "contributed" ? "primary" : "ghost"}
+                size="sm"
                 onClick={() => setActiveTab("contributed")}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
-                  activeTab === "contributed"
-                    ? "bg-primary-600 text-white shadow-glow-sm"
-                    : "text-gray-300 hover:text-white hover:bg-dark-800"
-                }`}
               >
-                <span>👥 Contributions</span>
-                <span className="px-1.5 py-0.2 rounded-md bg-dark-950/30 text-[10px]">
-                  {contributedProjects.length}
-                </span>
-              </button>
+                <span>👥 Contributions ({contributedProjects.length})</span>
+              </Button>
             )}
 
-            <button
+            <Button
+              variant={activeTab === "all" ? "primary" : "ghost"}
+              size="sm"
               onClick={() => setActiveTab("all")}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
-                activeTab === "all"
-                  ? "bg-dark-700 text-white"
-                  : "text-gray-300 hover:text-white hover:bg-dark-800"
-              }`}
             >
-              <span>All Projects</span>
-              <span className="px-1.5 py-0.2 rounded-md bg-dark-950/30 text-[10px]">
-                {ledProjects.length + contributedProjects.length}
-              </span>
-            </button>
+              <span>All ({ledProjects.length + contributedProjects.length})</span>
+            </Button>
           </div>
         </div>
 
         {/* Filter & Search Toolbar */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="relative w-full sm:w-72">
-            <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 w-3.5 h-3.5" />
-            <input
-              type="text"
+          <div className="w-full sm:w-72">
+            <Input
+              icon={FiSearch}
               placeholder="Search projects or skills..."
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
-              className="input-field pl-9 py-2 text-xs w-full"
             />
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
             {["ALL", "COMPLETED", "IN_DEVELOPMENT"].map((st) => (
-              <button
+              <Button
                 key={st}
+                variant={statusFilter === st ? "primary" : "ghost"}
+                size="sm"
                 onClick={() => setStatusFilter(st)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition ${
-                  statusFilter === st
-                    ? "bg-dark-700 text-white border border-dark-600 shadow-sm"
-                    : "text-gray-400 hover:text-white hover:bg-dark-800/60"
-                }`}
               >
                 {st === "ALL" ? "All Status" : st.replace("_", " ")}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
 
         {/* Projects List */}
         {displayedProjects.length === 0 ? (
-          <div className="glass-card p-12 text-center space-y-3">
-            <FiFolder className="w-12 h-12 text-dark-500 mx-auto" />
-            <h3 className="text-base font-bold text-white">No Projects Found</h3>
-            <p className="text-xs text-gray-400 max-w-md mx-auto">
+          <Card className="text-center py-16 px-6">
+            <FiFolder className="w-12 h-12 text-iron mx-auto mb-3" />
+            <h3 className="text-base font-semibold text-paper mb-1">
+              No Projects Found
+            </h3>
+            <p className="text-xs font-mono text-smoke max-w-md mx-auto">
               {activeTab === "led"
                 ? `${developer.name} hasn't published or delivered projects as a team leader matching this criteria yet.`
                 : "No matching project history found."}
             </p>
-          </div>
+          </Card>
         ) : (
           <div className="space-y-6">
             {displayedProjects.map((project) => {
@@ -523,277 +531,257 @@ const DeveloperProfile = () => {
               );
 
               return (
-                <div
+                <Card
                   key={project._id}
-                  className={`glass-card p-6 sm:p-8 space-y-6 transition-all hover:border-dark-600/80 relative overflow-hidden ${
-                    isLeader ? "border-l-4 border-l-amber-400/90 shadow-glass" : ""
-                  }`}
+                  hoverable
+                  className={isLeader ? "border-l-4 border-l-lime" : ""}
                 >
-                  {/* Top Bar: Leadership Badge, Status, Category */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {isLeader ? (
-                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1.5 shadow-sm">
-                          <span>👑 Team Leader</span>
-                          {leaderMember?.customRole && (
-                            <span className="text-amber-200/80 font-normal">
-                              • {leaderMember.customRole}
-                            </span>
-                          )}
-                        </span>
-                      ) : (
-                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-dark-800 text-gray-300 border border-dark-700 flex items-center gap-1.5">
-                          <FiUsers className="w-3.5 h-3.5 text-primary-400" />
-                          <span>Team Contributor</span>
-                        </span>
-                      )}
+                  <CardContent className="p-6 sm:p-8 space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {isLeader ? (
+                          <Badge variant="lime" size="sm">
+                            👑 Team Leader
+                            {leaderMember?.customRole && ` • ${leaderMember.customRole}`}
+                          </Badge>
+                        ) : (
+                          <Badge variant="neutral" size="sm">
+                            <FiUsers className="w-3.5 h-3.5 text-lime" />
+                            <span>Team Contributor</span>
+                          </Badge>
+                        )}
 
-                      {getStatusBadge(project.status)}
+                        {getStatusBadge(project.status)}
 
-                      {project.category && (
-                        <span className="text-xs text-gray-400 bg-dark-900/80 px-2.5 py-0.5 rounded-md border border-dark-700/60">
-                          {project.category}
-                        </span>
-                      )}
+                        {project.category && (
+                          <Badge variant="neutral" size="sm">
+                            {project.category}
+                          </Badge>
+                        )}
+                      </div>
+
+                      <div className="text-xs font-mono text-smoke flex items-center gap-1.5">
+                        <FiClock className="w-3.5 h-3.5" />
+                        {project.completionDate ? (
+                          <span>
+                            Delivered:{" "}
+                            <strong className="text-paper">
+                              {new Date(project.completionDate).toLocaleDateString(
+                                "en-US",
+                                {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                }
+                              )}
+                            </strong>
+                          </span>
+                        ) : (
+                          <span>Duration: {project.expectedDuration || "Active milestone"}</span>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="text-xs text-gray-400 flex items-center gap-1.5">
-                      <FiClock className="w-3.5 h-3.5 text-gray-500" />
-                      {project.completionDate ? (
-                        <span>
-                          Delivered:{" "}
-                          <strong className="text-gray-200">
-                            {new Date(project.completionDate).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
+                    <div className="space-y-2">
+                      <Link
+                        to={`/projects/${project._id}`}
+                        className="text-xl sm:text-2xl font-bold text-paper hover:text-lime transition font-display flex items-center gap-2 group"
+                      >
+                        <span>{project.title}</span>
+                        <FiChevronRight className="w-5 h-5 text-smoke group-hover:text-lime group-hover:translate-x-1 transition" />
+                      </Link>
+
+                      <div className="flex items-center gap-4 text-xs font-mono text-smoke flex-wrap">
+                        <span className="flex items-center gap-1.5">
+                          <FiUser className="text-lime w-3.5 h-3.5" />
+                          Client:{" "}
+                          <strong className="text-paper">
+                            {project.problemProvider?.organizationName ||
+                              project.problemProvider?.name ||
+                              "Verified Client"}
                           </strong>
                         </span>
-                      ) : (
-                        <span>Duration: {project.expectedDuration || "Active milestone"}</span>
-                      )}
+
+                        <span className="flex items-center gap-1.5">
+                          <FiDollarSign className="text-lime w-3.5 h-3.5" />
+                          Budget:{" "}
+                          <strong className="text-paper">
+                            {project.budgetType === "Volunteer"
+                              ? "Volunteer Project"
+                              : `${project.currency === "INR" ? "₹" : project.currency || "₹"}${
+                                  project.budgetAmount?.toLocaleString() || 0
+                                } (${project.budgetType || "Fixed"})`}
+                          </strong>
+                        </span>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Project Title & Client Details */}
-                  <div className="space-y-2">
-                    <Link
-                      to={`/projects/${project._id}`}
-                      className="text-xl sm:text-2xl font-bold text-white hover:text-primary-400 transition font-display flex items-center gap-2 group"
-                    >
-                      <span>{project.title}</span>
-                      <FiChevronRight className="w-5 h-5 text-gray-500 group-hover:text-primary-400 group-hover:translate-x-1 transition" />
-                    </Link>
-
-                    {/* Metadata line: Provider, Budget */}
-                    <div className="flex items-center gap-4 text-xs text-gray-400 flex-wrap">
-                      <span className="flex items-center gap-1.5">
-                        <FiUser className="text-accent-400 w-3.5 h-3.5" />
-                        Client / Provider:{" "}
-                        <strong className="text-gray-200">
-                          {project.problemProvider?.organizationName ||
-                            project.problemProvider?.name ||
-                            "Verified Client"}
-                        </strong>
-                      </span>
-
-                      <span className="flex items-center gap-1.5">
-                        <FiDollarSign className="text-emerald-400 w-3.5 h-3.5" />
-                        Budget:{" "}
-                        <strong className="text-gray-200">
-                          {project.budgetType === "Volunteer"
-                            ? "Volunteer Project"
-                            : `${project.currency === "INR" ? "₹" : project.currency || "₹"}${
-                                project.budgetAmount?.toLocaleString() || 0
-                              } (${project.budgetType || "Fixed"})`}
-                        </strong>
-                      </span>
+                    <div className="text-xs font-mono text-bone leading-relaxed bg-void p-4 rounded-button border border-hairline">
+                      <p>{project.aiSummary || project.description}</p>
                     </div>
-                  </div>
 
-                  {/* Problem Description & Architecture Scope */}
-                  <div className="text-xs sm:text-sm text-gray-300 leading-relaxed bg-dark-900/40 p-4 rounded-2xl border border-dark-700/50 space-y-2">
-                    <p>{project.aiSummary || project.description}</p>
-                  </div>
-
-                  {/* Verified Solution & Live Deliverables Box (for Completed / Active projects) */}
-                  {(project.solution?.completionSummary ||
-                    project.solution?.liveUrl ||
-                    project.liveUrl ||
-                    project.solution?.demoVideo) && (
-                    <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-950/30 via-dark-900/60 to-dark-900/40 border border-emerald-500/30 space-y-3">
-                      <div className="flex items-center justify-between gap-3 flex-wrap">
-                        <div className="text-xs font-bold text-emerald-400 flex items-center gap-2">
-                          <FiCheckCircle className="w-4 h-4 text-emerald-400" />
+                    {(project.solution?.completionSummary ||
+                      project.solution?.liveUrl ||
+                      project.liveUrl ||
+                      project.solution?.demoVideo) && (
+                      <div className="p-4 sm:p-5 rounded-button bg-void border border-lime/30 space-y-3 font-mono text-xs">
+                        <div className="font-semibold text-lime flex items-center gap-2">
+                          <FiCheckCircle className="w-4 h-4 text-lime" />
                           <span>Delivered Solution & Production Deliverables</span>
                         </div>
-                        {project.solution?.submittedAt && (
-                          <span className="text-[11px] text-gray-400">
-                            Verified on{" "}
-                            {new Date(project.solution.submittedAt).toLocaleDateString()}
-                          </span>
-                        )}
-                      </div>
 
-                      {project.solution?.completionSummary && (
-                        <p className="text-xs text-gray-200 leading-relaxed">
-                          {project.solution.completionSummary}
-                        </p>
-                      )}
-
-                      {/* Deliverable Links */}
-                      <div className="flex items-center gap-2.5 pt-1 flex-wrap">
-                        {(project.solution?.liveUrl || project.liveUrl) && (
-                          <a
-                            href={project.solution?.liveUrl || project.liveUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="btn-secondary btn-xs inline-flex items-center gap-1.5 text-emerald-300 hover:text-emerald-200 bg-emerald-500/10 border-emerald-500/30 hover:border-emerald-400"
-                          >
-                            <FiGlobe className="w-3.5 h-3.5" />
-                            <span>Live Application / Demo</span>
-                            <FiExternalLink className="w-3 h-3 text-emerald-400/70" />
-                          </a>
+                        {project.solution?.completionSummary && (
+                          <p className="text-bone leading-relaxed">
+                            {project.solution.completionSummary}
+                          </p>
                         )}
 
-                        {project.solution?.demoVideo && (
-                          <a
-                            href={project.solution.demoVideo}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="btn-secondary btn-xs inline-flex items-center gap-1.5 text-rose-300 hover:text-rose-200"
-                          >
-                            <FiPlayCircle className="w-3.5 h-3.5 text-rose-400" />
-                            <span>Video Walkthrough</span>
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                        <div className="flex items-center gap-2.5 pt-1 flex-wrap">
+                          {(project.solution?.liveUrl || project.liveUrl) && (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              href={project.solution?.liveUrl || project.liveUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              <FiGlobe className="w-3.5 h-3.5 text-lime" />
+                              <span>Live Application / Demo</span>
+                              <FiExternalLink className="w-3 h-3 text-smoke" />
+                            </Button>
+                          )}
 
-                  {/* Real-World Social Impact Metrics (if available) */}
-                  {project.impact &&
-                    (project.impact.peopleBenefited || project.impact.organizationsHelped) && (
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-2xl bg-dark-900/50 border border-dark-700/60">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-accent-500/20 text-accent-400 flex items-center justify-center font-bold text-sm">
-                            👥
-                          </div>
-                          <div>
-                            <div className="text-sm font-bold text-white font-display">
-                              {project.impact.peopleBenefited?.toLocaleString() || 0}+
-                            </div>
-                            <div className="text-[11px] text-gray-400">People Benefited</div>
-                          </div>
+                          {project.solution?.demoVideo && (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              href={project.solution.demoVideo}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              <FiPlayCircle className="w-3.5 h-3.5 text-lime" />
+                              <span>Video Walkthrough</span>
+                            </Button>
+                          )}
                         </div>
-
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">
-                            🏢
-                          </div>
-                          <div>
-                            <div className="text-sm font-bold text-white font-display">
-                              {project.impact.organizationsHelped || 0}
-                            </div>
-                            <div className="text-[11px] text-gray-400">Organizations Helped</div>
-                          </div>
-                        </div>
-
-                        {project.impact.notes && (
-                          <div className="sm:col-span-1 text-xs text-gray-300 italic flex items-center">
-                            "{project.impact.notes}"
-                          </div>
-                        )}
                       </div>
                     )}
 
-                  {/* Team Members Led by Developer */}
-                  {project.teamMembers && project.teamMembers.length > 0 && (
-                    <div className="space-y-2 pt-2 border-t border-dark-700/50">
-                      <div className="text-xs font-semibold text-gray-400 flex items-center gap-1.5 uppercase tracking-wider">
-                        <FiUsers className="w-3.5 h-3.5 text-primary-400" />
-                        <span>
-                          Engineering Team Managed ({project.teamMembers.length} / {project.maxTeamSize || 5} members)
-                        </span>
-                      </div>
+                    {project.impact &&
+                      (project.impact.peopleBenefited || project.impact.organizationsHelped) && (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-button bg-void border border-hairline font-mono text-xs">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-button bg-graphite border border-hairline text-lime flex items-center justify-center font-bold text-sm">
+                              👥
+                            </div>
+                            <div>
+                              <div className="text-sm font-bold text-paper">
+                                {project.impact.peopleBenefited?.toLocaleString() || 0}+
+                              </div>
+                              <div className="text-[11px] text-smoke">People Benefited</div>
+                            </div>
+                          </div>
 
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        {project.teamMembers.map((member, mIdx) => {
-                          const isMemLeader = member.role === "Leader";
-                          return (
-                            <div
-                              key={mIdx}
-                              className={`p-2 rounded-xl text-xs flex items-center gap-2 border ${
-                                isMemLeader
-                                  ? "bg-amber-500/10 border-amber-500/30 text-amber-200"
-                                  : "bg-dark-900/60 border-dark-700/60 text-gray-300"
-                              }`}
-                            >
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-button bg-graphite border border-hairline text-lime flex items-center justify-center font-bold text-sm">
+                              🏢
+                            </div>
+                            <div>
+                              <div className="text-sm font-bold text-paper">
+                                {project.impact.organizationsHelped || 0}
+                              </div>
+                              <div className="text-[11px] text-smoke">Organizations Helped</div>
+                            </div>
+                          </div>
+
+                          {project.impact.notes && (
+                            <div className="sm:col-span-1 text-smoke italic flex items-center">
+                              "{project.impact.notes}"
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                    {project.teamMembers && project.teamMembers.length > 0 && (
+                      <div className="space-y-2 pt-2 border-t border-hairline font-mono text-xs">
+                        <div className="text-smoke flex items-center gap-1.5 uppercase tracking-wider">
+                          <FiUsers className="w-3.5 h-3.5 text-lime" />
+                          <span>
+                            Engineering Team Managed ({project.teamMembers.length} / {project.maxTeamSize || 5} members)
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {project.teamMembers.map((member, mIdx) => {
+                            const isMemLeader = member.role === "Leader";
+                            return (
                               <div
-                                className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                                key={mIdx}
+                                className={`p-2 rounded-button flex items-center gap-2 border ${
                                   isMemLeader
-                                    ? "bg-amber-500 text-dark-950"
-                                    : "bg-primary-600 text-white"
+                                    ? "bg-carbon border-lime/40 text-paper"
+                                    : "bg-void border-hairline text-bone"
                                 }`}
                               >
-                                {member.user?.name ? member.user.name.charAt(0) : "M"}
+                                <div
+                                  className={`w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold ${
+                                    isMemLeader
+                                      ? "bg-lime text-black"
+                                      : "bg-graphite text-lime"
+                                  }`}
+                                >
+                                  {member.user?.name ? member.user.name.charAt(0) : "M"}
+                                </div>
+                                <div className="leading-tight">
+                                  <p className="font-semibold text-paper truncate max-w-[120px]">
+                                    {member.user?.name || "Developer"}
+                                  </p>
+                                  <p className="text-[10px] text-smoke">
+                                    {member.customRole || member.role}
+                                  </p>
+                                </div>
                               </div>
-                              <div className="leading-tight">
-                                <p className="font-semibold text-white truncate max-w-[120px]">
-                                  {member.user?.name || "Developer"}
-                                </p>
-                                <p className="text-[10px] text-gray-400">
-                                  {member.customRole || member.role}
-                                </p>
-                              </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-hairline">
+                      <div className="flex flex-wrap gap-1.5 items-center">
+                        <span className="text-xs font-mono text-smoke mr-1 flex items-center gap-1">
+                          <FiCode className="w-3.5 h-3.5 text-lime" /> Stack:
+                        </span>
+                        {project.requiredSkills && project.requiredSkills.length > 0 ? (
+                          project.requiredSkills.map((sk, sIdx) => (
+                            <Badge key={sIdx} variant="neutral" size="sm">
+                              {sk}
+                            </Badge>
+                          ))
+                        ) : project.preferredTechnologies ? (
+                          project.preferredTechnologies.split(",").map((tech, tIdx) => (
+                            <Badge key={tIdx} variant="neutral" size="sm">
+                              {tech.trim()}
+                            </Badge>
+                          ))
+                        ) : (
+                          <span className="text-xs font-mono text-smoke italic">Full Stack</span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2 self-end sm:self-center">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setSelectedSpecsProject(project)}
+                        >
+                          <FiInfo className="w-3.5 h-3.5 text-lime" />
+                          <span>Inspect Specs</span>
+                        </Button>
                       </div>
                     </div>
-                  )}
-
-                  {/* Tech Stack Chips & Actions */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-dark-700/60">
-                    <div className="flex flex-wrap gap-1.5 items-center">
-                      <span className="text-xs text-gray-400 mr-1 flex items-center gap-1">
-                        <FiCode className="w-3.5 h-3.5" /> Stack:
-                      </span>
-                      {project.requiredSkills && project.requiredSkills.length > 0 ? (
-                        project.requiredSkills.map((sk, sIdx) => (
-                          <span
-                            key={sIdx}
-                            className="badge badge-primary text-[11px] py-0.5 px-2 bg-dark-900/80 border border-primary-500/20 text-primary-300"
-                          >
-                            {sk}
-                          </span>
-                        ))
-                      ) : project.preferredTechnologies ? (
-                        project.preferredTechnologies.split(",").map((tech, tIdx) => (
-                          <span
-                            key={tIdx}
-                            className="badge badge-primary text-[11px] py-0.5 px-2 bg-dark-900/80 border border-primary-500/20 text-primary-300"
-                          >
-                            {tech.trim()}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="text-xs text-gray-500 italic">Full Stack Stack</span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-3 self-end sm:self-center">
-                      <button
-                        onClick={() => setSelectedSpecsProject(project)}
-                        className="btn-secondary btn-xs flex items-center gap-1.5"
-                      >
-                        <FiInfo className="w-3.5 h-3.5 text-accent-400" />
-                        <span>Inspect Specs</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               );
             })}
           </div>
@@ -801,180 +789,153 @@ const DeveloperProfile = () => {
       </div>
 
       {/* Specifications & Blueprint Modal */}
-      {selectedSpecsProject && (
-        <div className="modal-overlay">
-          <div className="modal-content max-w-2xl space-y-5 animate-scale-in">
-            <div className="flex items-center justify-between pb-3 border-b border-dark-700">
-              <div className="flex items-center gap-2">
-                <FiInfo className="text-accent-400 w-5 h-5" />
-                <h3 className="text-base font-bold text-white truncate max-w-md">
-                  {selectedSpecsProject.title} — Blueprint & Specs
-                </h3>
-              </div>
-              <button
-                onClick={() => setSelectedSpecsProject(null)}
-                className="text-gray-400 hover:text-white"
-              >
-                ✕
-              </button>
+      <Modal
+        isOpen={Boolean(selectedSpecsProject)}
+        onClose={() => setSelectedSpecsProject(null)}
+        title={`${selectedSpecsProject?.title || "Problem"} — Blueprint & Specs`}
+      >
+        {selectedSpecsProject && (
+          <div className="space-y-4 font-mono text-xs">
+            <div>
+              <h4 className="text-smoke uppercase tracking-wider mb-1">
+                Required Architecture Features
+              </h4>
+              <p className="text-bone leading-relaxed bg-void p-3 rounded-button border border-hairline">
+                {selectedSpecsProject.requiredFeatures || "Features specified in project scope."}
+              </p>
             </div>
 
-            <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
-              <div>
-                <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">
-                  Required Architecture Features
-                </h4>
-                <p className="text-xs text-gray-200 leading-relaxed bg-dark-900/70 p-3 rounded-xl border border-dark-700/60">
-                  {selectedSpecsProject.requiredFeatures || "Features specified in project scope."}
-                </p>
-              </div>
-
-              {selectedSpecsProject.aiSuggestedFeatures &&
-                selectedSpecsProject.aiSuggestedFeatures.length > 0 && (
-                  <div>
-                    <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                      Delivered Feature Milestones
-                    </h4>
-                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-300">
-                      {selectedSpecsProject.aiSuggestedFeatures.map((feat, fIdx) => (
-                        <li
-                          key={fIdx}
-                          className="p-2.5 rounded-xl bg-dark-900/50 border border-dark-700/50 flex items-start gap-2"
-                        >
-                          <FiCheckCircle className="w-3.5 h-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                          <span>{feat}</span>
-                        </li>
-                      ))}
-                    </ul>
+            {selectedSpecsProject.aiSuggestedFeatures &&
+              selectedSpecsProject.aiSuggestedFeatures.length > 0 && (
+                <div>
+                  <h4 className="text-smoke uppercase tracking-wider mb-2">
+                    Delivered Feature Milestones
+                  </h4>
+                  <div className="space-y-1.5">
+                    {selectedSpecsProject.aiSuggestedFeatures.map((feat, fIdx) => (
+                      <div
+                        key={fIdx}
+                        className="p-2.5 rounded-button bg-void border border-hairline flex items-start gap-2"
+                      >
+                        <FiCheckCircle className="w-3.5 h-3.5 text-lime mt-0.5 shrink-0" />
+                        <span className="text-bone">{feat}</span>
+                      </div>
+                    ))}
                   </div>
-                )}
+                </div>
+              )}
 
-              <div className="grid grid-cols-2 gap-3 pt-2 text-xs">
-                <div className="p-3 rounded-xl bg-dark-900/60 border border-dark-700/60">
-                  <span className="text-gray-400 block text-[10px] uppercase">Complexity</span>
-                  <span className="font-bold text-white">
-                    {selectedSpecsProject.aiComplexity || "Standard Production"}
-                  </span>
-                </div>
-                <div className="p-3 rounded-xl bg-dark-900/60 border border-dark-700/60">
-                  <span className="text-gray-400 block text-[10px] uppercase">Client Org</span>
-                  <span className="font-bold text-white truncate block">
-                    {selectedSpecsProject.problemProvider?.organizationName ||
-                      selectedSpecsProject.problemProvider?.name ||
-                      "Verified Organization"}
-                  </span>
-                </div>
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <div className="p-3 rounded-button bg-void border border-hairline">
+                <span className="text-smoke block text-[10px] uppercase">Complexity</span>
+                <span className="font-bold text-paper">
+                  {selectedSpecsProject.aiComplexity || "Standard Production"}
+                </span>
+              </div>
+              <div className="p-3 rounded-button bg-void border border-hairline">
+                <span className="text-smoke block text-[10px] uppercase">Client Org</span>
+                <span className="font-bold text-paper truncate block">
+                  {selectedSpecsProject.problemProvider?.organizationName ||
+                    selectedSpecsProject.problemProvider?.name ||
+                    "Verified Organization"}
+                </span>
               </div>
             </div>
 
-            <div className="flex justify-end items-center pt-3 border-t border-dark-700">
-              <button
-                type="button"
+            <div className="flex justify-end pt-3 border-t border-hairline">
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => setSelectedSpecsProject(null)}
-                className="btn-secondary btn-sm"
               >
                 Close
-              </button>
+              </Button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {/* Invite Modal */}
-      {inviteModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-dark-700">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <FiSend className="text-accent-400" />
-                Invite {developer.name} to Lead a Problem
-              </h3>
-              <button
-                onClick={() => setInviteModalOpen(false)}
-                className="text-gray-400 hover:text-white"
-              >
-                ✕
-              </button>
+      <Modal
+        isOpen={inviteModalOpen}
+        onClose={() => setInviteModalOpen(false)}
+        title={`Invite ${developer.name} to Lead a Problem`}
+      >
+        {inviteSuccess ? (
+          <div className="py-8 text-center space-y-3 font-mono">
+            <FiCheckCircle className="w-12 h-12 text-lime mx-auto animate-bounce" />
+            <p className="text-sm font-semibold text-paper">
+              Invitation Sent Successfully!
+            </p>
+            <p className="text-xs text-smoke">
+              The developer will be notified and can accept or decline.
+            </p>
+          </div>
+        ) : (
+          <form onSubmit={handleSendInvite} className="space-y-4">
+            {inviteError && (
+              <div className="p-3 bg-red-950/30 border border-red-500/40 text-red-300 font-mono text-xs rounded-button">
+                {inviteError}
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-mono text-smoke uppercase tracking-wider mb-1">
+                Select Project / Problem
+              </label>
+              {myProblems.length === 0 ? (
+                <div className="p-3 bg-void border border-hairline text-xs font-mono text-smoke rounded-button">
+                  You don't have any active open problems.{" "}
+                  <Link to="/provider/create" className="text-lime underline">
+                    Post a problem first.
+                  </Link>
+                </div>
+              ) : (
+                <Select
+                  value={selectedProject}
+                  onChange={(e) => setSelectedProject(e.target.value)}
+                  required
+                >
+                  {myProblems.map((p) => (
+                    <option key={p._id} value={p._id}>
+                      {p.title} ({p.status})
+                    </option>
+                  ))}
+                </Select>
+              )}
             </div>
 
-            {inviteSuccess ? (
-              <div className="p-6 text-center space-y-2">
-                <FiCheckCircle className="w-10 h-10 text-emerald-400 mx-auto" />
-                <p className="text-sm font-bold text-white">Invitation Sent Successfully!</p>
-                <p className="text-xs text-gray-400">
-                  The developer will be notified and can accept or decline.
-                </p>
-              </div>
-            ) : (
-              <form onSubmit={handleSendInvite} className="space-y-4">
-                {inviteError && (
-                  <div className="p-3 bg-red-500/20 border border-red-500/40 text-red-300 text-xs rounded-xl">
-                    {inviteError}
-                  </div>
-                )}
+            <Textarea
+              label="Personal Note / Scope Summary (Optional)"
+              rows={3}
+              placeholder="e.g. We loved your leadership experience and would like you to lead this engineering team..."
+              value={inviteMessage}
+              onChange={(e) => setInviteMessage(e.target.value)}
+            />
 
-                <div>
-                  <label className="input-label text-xs">Select Project / Problem</label>
-                  {myProblems.length === 0 ? (
-                    <div className="p-3 bg-dark-900/60 border border-dark-700 text-xs text-gray-400 rounded-xl">
-                      You don't have any active open problems.{" "}
-                      <Link to="/provider/create" className="text-primary-400 underline">
-                        Post a problem first.
-                      </Link>
-                    </div>
-                  ) : (
-                    <select
-                      value={selectedProject}
-                      onChange={(e) => setSelectedProject(e.target.value)}
-                      className="select-field text-xs"
-                      required
-                    >
-                      {myProblems.map((p) => (
-                        <option key={p._id} value={p._id}>
-                          {p.title} ({p.status})
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-
-                <div>
-                  <label className="input-label text-xs">
-                    Personal Note / Scope Summary (Optional)
-                  </label>
-                  <textarea
-                    rows={3}
-                    placeholder="e.g. We loved your leadership experience and would like you to lead this engineering team..."
-                    value={inviteMessage}
-                    onChange={(e) => setInviteMessage(e.target.value)}
-                    className="textarea-field text-xs"
-                  />
-                </div>
-
-                <div className="flex justify-end gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setInviteModalOpen(false)}
-                    className="btn-secondary btn-sm"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={inviting || myProblems.length === 0}
-                    className="btn-primary btn-sm disabled:opacity-50"
-                  >
-                    {inviting ? "Sending..." : "Send Invitation"}
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
+            <div className="flex justify-end gap-2 pt-2 border-t border-hairline">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setInviteModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                size="sm"
+                disabled={inviting || myProblems.length === 0}
+              >
+                {inviting ? "Sending..." : "Send Invitation"}
+              </Button>
+            </div>
+          </form>
+        )}
+      </Modal>
+    </Container>
   );
 };
 
 export default DeveloperProfile;
-

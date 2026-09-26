@@ -1,22 +1,30 @@
 import React, { useState, useEffect, useContext } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import {
   FiArrowRight,
-  FiCpu,
-  FiUsers,
-  FiCheckCircle,
   FiAward,
   FiCode,
-  FiHeart,
-  FiShield,
-  FiLayers,
+  FiTerminal,
   FiPlusCircle,
+  FiCheckCircle,
 } from "react-icons/fi";
 import { AuthContext } from "../../context/AuthContext";
+import { getDashboardRoute } from "../../components/PublicOnlyRoute";
 import api from "../../services/api";
+import {
+  Container,
+  Card,
+  Button,
+  Badge,
+} from "../../components/ui";
 
 const LandingPage = () => {
-  const { user } = useContext(AuthContext);
+  const { user, isAuthenticated } = useContext(AuthContext);
+
+  if (isAuthenticated && user) {
+    return <Navigate to={getDashboardRoute(user.role)} replace />;
+  }
+
   const [featuredProjects, setFeaturedProjects] = useState([]);
   const [topDevelopers, setTopDevelopers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -40,278 +48,234 @@ const LandingPage = () => {
   }, []);
 
   return (
-    <div className="space-y-24 pb-20">
-      {/* HERO SECTION */}
-      <section className="relative pt-20 pb-16 overflow-hidden">
-        {/* Glow ambient backgrounds */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-gradient-to-tr from-primary-600/20 via-accent-500/20 to-neon-green/10 blur-[120px] pointer-events-none -z-10 rounded-full" />
-
-        <div className="max-w-5xl mx-auto px-4 text-center space-y-8">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-dark-800/80 border border-primary-500/30 text-xs font-semibold text-primary-300 shadow-glow-sm animate-fade-in">
-            <span className="flex h-2 w-2 rounded-full bg-neon-green animate-ping" />
-            Next-Gen AI-Powered Social Dev Platform
+    <div className="space-y-20 pb-20 bg-void text-paper">
+      {/* HERO SECTION — ClickHouse Display Register */}
+      <section className="pt-20 pb-16">
+        <Container className="text-center space-y-8 max-w-4xl">
+          {/* Eyebrow Status Pill */}
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-pills bg-lime-dark border border-lime/30 text-lime font-mono text-xs font-semibold">
+            <span className="w-1.5 h-1.5 rounded-full bg-lime animate-cursor-blink" />
+            <span>AI-POWERED COLLABORATIVE DEVELOPMENT GRID</span>
           </div>
 
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold font-display tracking-tight text-white leading-[1.1] animate-slide-up">
+          {/* Display Headline */}
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold text-white tracking-tight leading-[1.05]">
             Connect Real Problems with{" "}
-            <span className="text-gradient">Developers Who Can Solve Them</span>
+            <span className="text-lime">Developers Who Deliver.</span>
           </h1>
 
-          <p className="max-w-2xl mx-auto text-base sm:text-lg text-gray-300 font-normal leading-relaxed animate-slide-up">
-            SolveX turns community, NGO, and grassroots challenges into structured technical requirements with Groq AI, manages team formation, and coordinates delivery without replacing GitHub.
+          {/* Subtext */}
+          <p className="max-w-2xl mx-auto text-base sm:text-lg text-smoke leading-relaxed">
+            SolveX turns community, NGO, and grassroots challenges into structured technical blueprints with Groq AI, coordinates team milestones, and verifies GitHub delivery.
           </p>
 
-          {/* Call to Actions */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4 animate-scale-in">
-            {user?.role === "PROBLEM_PROVIDER" ? (
-              <>
-                <Link to="/provider/dashboard" className="btn-primary btn-lg w-full sm:w-auto flex items-center justify-center gap-2">
-                  <span>Go to Provider Dashboard</span>
-                  <FiArrowRight className="w-5 h-5" />
-                </Link>
-                <Link to="/provider/create" className="btn-accent btn-lg w-full sm:w-auto flex items-center justify-center gap-2">
-                  <FiPlusCircle className="w-5 h-5" />
-                  <span>Post Problem</span>
-                </Link>
-              </>
-            ) : (
-              <>
-                <Link to="/explore" className="btn-primary btn-lg w-full sm:w-auto flex items-center justify-center gap-2">
-                  <span>Explore Open Problems</span>
-                  <FiArrowRight className="w-5 h-5" />
-                </Link>
-                <Link to="/register" className="btn-secondary btn-lg w-full sm:w-auto">
-                  Join as Developer / Provider
-                </Link>
-              </>
-            )}
+          {/* Two-Button Stack */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <Button to="/explore" variant="primary" size="lg" icon={FiArrowRight} iconPosition="right">
+              Explore Open Problems
+            </Button>
+            <Button to="/register" variant="secondary" size="lg">
+              Join as Developer / Provider
+            </Button>
           </div>
-
-          {/* Quick Metrics Badges */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-12 max-w-4xl mx-auto">
-            <div className="glass-card p-4 text-center">
-              <span className="text-2xl sm:text-3xl font-bold font-display text-white">100%</span>
-              <p className="text-xs text-gray-400 mt-1">Free-for-Good Platform</p>
-            </div>
-            <div className="glass-card p-4 text-center">
-              <span className="text-2xl sm:text-3xl font-bold font-display text-primary-400">Groq AI</span>
-              <p className="text-xs text-gray-400 mt-1">Instant Scope Engine</p>
-            </div>
-            <div className="glass-card p-4 text-center">
-              <span className="text-2xl sm:text-3xl font-bold font-display text-accent-400">Socket.io</span>
-              <p className="text-xs text-gray-400 mt-1">3-Channel Realtime Chat</p>
-            </div>
-            <div className="glass-card p-4 text-center">
-              <span className="text-2xl sm:text-3xl font-bold font-display text-emerald-400">Verified</span>
-              <p className="text-xs text-gray-400 mt-1">Developer Badges & Rep</p>
-            </div>
-          </div>
-        </div>
+        </Container>
       </section>
 
       {/* HOW IT WORKS LIFECYCLE */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
-          <span className="badge badge-primary">Structured Workflow</span>
-          <h2 className="text-3xl sm:text-4xl font-bold font-display text-white">
-            From Real Problem to Verified Solution
-          </h2>
-          <p className="text-gray-400 text-sm">
-            SolveX guides projects through an orderly lifecycle ensuring accountability and clear communication.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-          {/* Step 1 */}
-          <div className="glass-card-hover p-8 space-y-4 relative">
-            <div className="w-12 h-12 rounded-2xl bg-primary-600/20 border border-primary-500/40 text-primary-400 flex items-center justify-center font-bold text-xl">
-              1
-            </div>
-            <h3 className="text-lg font-bold text-white">AI Problem Breakdown</h3>
-            <p className="text-xs text-gray-400 leading-relaxed">
-              NGOs and providers describe challenges in plain words. Groq AI extracts functional requirements, recommended tech stacks, and estimated complexity automatically.
+      <section>
+        <Container>
+          <div className="text-center max-w-2xl mx-auto mb-12 space-y-2">
+            <span className="eyebrow">STRUCTURED WORKFLOW</span>
+            <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+              From Raw Problem to Production Delivery
+            </h2>
+            <p className="text-smoke text-xs sm:text-sm">
+              An orderly, transparent project lifecycle ensuring accountability and verified milestones.
             </p>
           </div>
 
-          {/* Step 2 */}
-          <div className="glass-card-hover p-8 space-y-4 relative">
-            <div className="w-12 h-12 rounded-2xl bg-accent-600/20 border border-accent-500/40 text-accent-400 flex items-center justify-center font-bold text-xl">
-              2
-            </div>
-            <h3 className="text-lg font-bold text-white">Leader & Team Formation</h3>
-            <p className="text-xs text-gray-400 leading-relaxed">
-              Developers apply or receive invitations. The first selected developer becomes Project Leader, recruits up to the hard team cap, and submits the milestone proposal.
-            </p>
-          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Step 1 */}
+            <Card className="p-6 space-y-4">
+              <div className="w-8 h-8 rounded-inputs bg-graphite border border-iron text-lime font-mono font-bold flex items-center justify-center text-sm">
+                01
+              </div>
+              <h3 className="text-base font-bold text-white">AI Requirement Blueprint</h3>
+              <p className="text-xs text-smoke leading-relaxed">
+                NGOs describe challenges in plain words. Groq AI generates functional specifications, tech stack suggestions, and complexity breakdown automatically.
+              </p>
+            </Card>
 
-          {/* Step 3 */}
-          <div className="glass-card-hover p-8 space-y-4 relative">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-600/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center font-bold text-xl">
-              3
-            </div>
-            <h3 className="text-lg font-bold text-white">GitHub Build & Review</h3>
-            <p className="text-xs text-gray-400 leading-relaxed">
-              Code is built on GitHub with live stat tracking. On delivery, the Problem Provider inspects the live deployment, approves the solution, and awards reputation.
-            </p>
+            {/* Step 2 */}
+            <Card className="p-6 space-y-4">
+              <div className="w-8 h-8 rounded-inputs bg-graphite border border-iron text-lime font-mono font-bold flex items-center justify-center text-sm">
+                02
+              </div>
+              <h3 className="text-base font-bold text-white">Leader &amp; Team Formation</h3>
+              <p className="text-xs text-smoke leading-relaxed">
+                Developers apply or receive invitations. The first selected developer becomes Project Leader, recruits up to the team cap, and submits the milestone proposal.
+              </p>
+            </Card>
+
+            {/* Step 3 */}
+            <Card className="p-6 space-y-4">
+              <div className="w-8 h-8 rounded-inputs bg-graphite border border-iron text-lime font-mono font-bold flex items-center justify-center text-sm">
+                03
+              </div>
+              <h3 className="text-base font-bold text-white">GitHub Build &amp; Sign-off</h3>
+              <p className="text-xs text-smoke leading-relaxed">
+                Code is developed on GitHub with commit tracking. On final deployment, the Problem Provider approves the solution and awards verified reputation points.
+              </p>
+            </Card>
           </div>
-        </div>
+        </Container>
       </section>
 
       {/* FEATURED COMPLETED SHOWCASE */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between mb-10 gap-4">
-          <div>
-            <span className="badge badge-success mb-2">Proven Impact</span>
-            <h2 className="text-3xl font-bold font-display text-white">
-              Featured Completed Solutions
-            </h2>
-            <p className="text-gray-400 text-xs sm:text-sm mt-1">
-              Real-world software built by SolveX teams actively serving communities.
-            </p>
-          </div>
-          <Link to="/showcase" className="text-primary-400 hover:text-primary-300 text-sm font-semibold flex items-center gap-1">
-            View All Showcase <FiArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="glass-card p-6 space-y-4 animate-pulse">
-                <div className="skeleton-title" />
-                <div className="skeleton-text" />
-                <div className="skeleton-text" />
-              </div>
-            ))}
-          </div>
-        ) : featuredProjects.length === 0 ? (
-          <div className="glass-card p-8 text-center text-gray-400 text-sm">
-            Completed solutions will be highlighted here.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {featuredProjects.map((p) => (
-              <div key={p._id} className="glass-card-hover p-6 flex flex-col justify-between space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="badge badge-success text-[10px]">COMPLETED</span>
-                    <span className="text-[11px] text-gray-400">{p.category}</span>
-                  </div>
-                  <h3 className="text-base font-bold text-white hover:text-primary-400 transition">
-                    <Link to={`/projects/${p._id}`}>{p.title}</Link>
-                  </h3>
-                  <p className="text-xs text-gray-400 line-clamp-3 leading-relaxed">
-                    {p.description}
-                  </p>
-                </div>
-
-                <div className="pt-4 border-t border-dark-700/60 space-y-3">
-                  {p.impact?.peopleBenefited > 0 && (
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-gray-400">People Benefited:</span>
-                      <span className="font-bold text-emerald-400">
-                        {p.impact.peopleBenefited.toLocaleString()}+
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-400">Project Leader:</span>
-                    <span className="font-medium text-white">{p.projectLeader?.name || "Anonymous"}</span>
-                  </div>
-                  <div className="flex gap-2 pt-2">
-                    <Link to={`/projects/${p._id}`} className="btn-secondary btn-sm w-full text-center">
-                      View Story
-                    </Link>
-                    {p.solution?.liveUrl && (
-                      <a
-                        href={p.solution.liveUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="btn-primary btn-sm w-full text-center"
-                      >
-                        Live Demo
-                      </a>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* TOP PERFORMERS LEADERBOARD PREVIEW */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="glass-card p-8 sm:p-12 border-primary-500/20 relative overflow-hidden">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8">
-            <div className="space-y-2">
-              <span className="badge badge-accent">Hall of Fame</span>
-              <h2 className="text-2xl sm:text-3xl font-bold font-display text-white">
-                Top Performing Developers
+      <section>
+        <Container>
+          <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between mb-8 gap-4 border-b border-iron/60 pb-4">
+            <div>
+              <span className="eyebrow">VERIFIED IMPACT</span>
+              <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight mt-1">
+                Featured Completed Solutions
               </h2>
-              <p className="text-xs sm:text-sm text-gray-400">
-                Ranked by verified milestone completion points and leadership history.
+              <p className="text-smoke text-xs sm:text-sm mt-1">
+                Real-world software built by SolveX teams actively serving communities.
               </p>
             </div>
-            <Link to="/developers" className="btn-secondary btn-sm flex items-center gap-2">
-              <FiAward className="w-4 h-4 text-accent-400" />
-              <span>Full Leaderboard</span>
+            <Link to="/showcase" className="text-xs text-lime hover:underline flex items-center gap-1 font-mono">
+              View All Showcase <FiArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {topDevelopers.map((dev, idx) => (
-              <div key={dev._id} className="bg-dark-900/70 border border-dark-700/80 rounded-xl p-5 flex items-start gap-4">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary-600 to-accent-500 flex-shrink-0 flex items-center justify-center text-white font-bold text-sm shadow-glow-sm">
-                  #{idx + 1}
-                </div>
-                <div className="space-y-1.5 flex-1 min-w-0">
-                  <h4 className="text-sm font-bold text-white truncate hover:text-primary-400">
-                    <Link to={`/developers/${dev._id}`}>{dev.name}</Link>
-                  </h4>
-                  <p className="text-xs text-accent-400 font-semibold">{dev.reputation || 0} Points</p>
-                  <p className="text-[11px] text-gray-400">
-                    {dev.projectsCompleted || 0} completed • {dev.projectsLed || 0} led
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="p-6 space-y-3 animate-pulse">
+                  <div className="h-5 bg-graphite rounded-inputs w-2/3" />
+                  <div className="h-3 bg-graphite rounded-inputs w-full" />
+                  <div className="h-3 bg-graphite rounded-inputs w-4/5" />
+                </Card>
+              ))}
+            </div>
+          ) : featuredProjects.length === 0 ? (
+            <Card className="p-8 text-center text-smoke text-sm">
+              Completed solutions will be highlighted here.
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {featuredProjects.map((p) => (
+                <Card key={p._id} hoverable className="p-6 flex flex-col justify-between space-y-4">
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <Badge variant="success" size="sm">COMPLETED</Badge>
+                      <span className="text-[11px] text-smoke font-mono">{p.category}</span>
+                    </div>
+                    <h3 className="text-base font-bold text-white hover:text-lime transition-colors">
+                      <Link to={`/projects/${p._id}`}>{p.title}</Link>
+                    </h3>
+                    <p className="text-xs text-smoke line-clamp-3 leading-relaxed">
+                      {p.description}
+                    </p>
+                  </div>
+
+                  <div className="pt-4 border-t border-iron/60 space-y-3 text-xs">
+                    {p.impact?.peopleBenefited > 0 && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-smoke">Beneficiaries:</span>
+                        <span className="font-mono font-bold text-lime">
+                          {p.impact.peopleBenefited.toLocaleString()}+
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between">
+                      <span className="text-smoke">Project Leader:</span>
+                      <span className="font-medium text-bone">{p.projectLeader?.name || "Anonymous"}</span>
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      <Button to={`/projects/${p._id}`} variant="secondary" size="sm" className="w-full">
+                        View Story
+                      </Button>
+                      {p.solution?.liveUrl && (
+                        <Button href={p.solution.liveUrl} variant="primary" size="sm" className="w-full">
+                          Live Demo
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </Container>
       </section>
 
-      {/* CALL TO ACTION */}
-      <section className="max-w-5xl mx-auto px-4 text-center">
-        <div className="glass-card p-10 sm:p-16 border-primary-500/30 space-y-6 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-primary-600/10 via-accent-500/10 to-transparent pointer-events-none -z-10" />
-          <h2 className="text-3xl sm:text-4xl font-extrabold font-display text-white">
-            Ready to Build High-Impact Software?
-          </h2>
-          <p className="max-w-xl mx-auto text-sm text-gray-300">
-            Join SolveX today as a developer to boost your verified portfolio, or as an NGO/community to turn your problem into a working system.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
-            {user?.role === "PROBLEM_PROVIDER" ? (
-              <>
-                <Link to="/provider/dashboard" className="btn-primary btn-lg w-full sm:w-auto">
-                  Go to Provider Dashboard
-                </Link>
-                <Link to="/provider/create" className="btn-secondary btn-lg w-full sm:w-auto">
-                  Post New Problem
-                </Link>
-              </>
-            ) : (
-              <>
-                <Link to="/register" className="btn-primary btn-lg w-full sm:w-auto">
-                  Create Your Account
-                </Link>
-                <Link to="/explore" className="btn-secondary btn-lg w-full sm:w-auto">
-                  Browse Problems
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
+      {/* TOP PERFORMERS LEADERBOARD */}
+      <section>
+        <Container>
+          <Card className="p-6 sm:p-10 space-y-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-iron/60 pb-4">
+              <div>
+                <span className="eyebrow">HALL OF FAME</span>
+                <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight mt-1">
+                  Top Performing Developers
+                </h2>
+                <p className="text-xs text-smoke mt-0.5">
+                  Ranked by verified milestone completions and leadership history.
+                </p>
+              </div>
+              <Button to="/developers" variant="secondary" size="sm" icon={FiAward}>
+                Full Leaderboard
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {topDevelopers.map((dev, idx) => (
+                <div
+                  key={dev._id}
+                  className="bg-void/60 border border-iron/70 rounded-inputs p-4 flex items-start gap-3.5 hover:border-steel transition-colors"
+                >
+                  <div className="w-8 h-8 rounded-inputs bg-graphite border border-iron flex-shrink-0 flex items-center justify-center text-lime font-mono font-bold text-xs">
+                    #{idx + 1}
+                  </div>
+                  <div className="space-y-1 flex-1 min-w-0">
+                    <h4 className="text-sm font-bold text-white truncate hover:text-lime transition-colors">
+                      <Link to={`/developers/${dev._id}`}>{dev.name}</Link>
+                    </h4>
+                    <p className="text-xs font-mono font-semibold text-lime">{dev.reputation || 0} Points</p>
+                    <p className="text-[11px] text-smoke">
+                      {dev.projectsCompleted || 0} completed • {dev.projectsLed || 0} led
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </Container>
+      </section>
+
+      {/* CALL TO ACTION — Terminal Install Box Register */}
+      <section>
+        <Container size="narrow" className="text-center">
+          <Card className="p-10 sm:p-12 space-y-6">
+            <span className="eyebrow">GET STARTED</span>
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
+              Ready to Build High-Impact Software?
+            </h2>
+            <p className="max-w-md mx-auto text-xs sm:text-sm text-smoke leading-relaxed">
+              Join SolveX as a developer to boost your verified portfolio, or as a community organizer to turn your challenge into working code.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+              <Button to="/register" variant="primary" size="md">
+                Create Your Account
+              </Button>
+              <Button to="/explore" variant="secondary" size="md">
+                Browse Problems
+              </Button>
+            </div>
+          </Card>
+        </Container>
       </section>
     </div>
   );

@@ -2,15 +2,26 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import {
   FiSearch,
-  FiAward,
   FiSend,
-  FiUser,
-  FiGithub,
-  FiLinkedin,
-  FiCheckCircle,
   FiFilter,
+  FiCheckCircle,
+  FiUser,
+  FiCode,
+  FiAward,
 } from "react-icons/fi";
 import api from "../../services/api";
+import {
+  Container,
+  PageHeader,
+  Card,
+  CardContent,
+  Button,
+  Badge,
+  Input,
+  Select,
+  Textarea,
+  Modal,
+} from "../../components/ui";
 
 const FindDevelopers = () => {
   const [developers, setDevelopers] = useState([]);
@@ -63,7 +74,15 @@ const FindDevelopers = () => {
       const res = await api.get("/projects/my-projects");
       const active = (res.data.projects || []).filter(
         (p) =>
-          ["OPEN", "LEADER_SELECTED", "TEAM_FORMING", "PROPOSAL_PENDING", "CHANGES_REQUESTED", "APPROVED", "IN_DEVELOPMENT"].includes(p.status) &&
+          [
+            "OPEN",
+            "LEADER_SELECTED",
+            "TEAM_FORMING",
+            "PROPOSAL_PENDING",
+            "CHANGES_REQUESTED",
+            "APPROVED",
+            "IN_DEVELOPMENT",
+          ].includes(p.status) &&
           (!p.teamMembers || p.teamMembers.length < (p.maxTeamSize || 5))
       );
       setMyProblems(active);
@@ -76,132 +95,125 @@ const FindDevelopers = () => {
   const handleSendInvite = async (e) => {
     e.preventDefault();
     if (!selectedProject) {
-      setInviteError("Please select a project.");
+      setInviteError("Please select a target problem.");
       return;
     }
     setInviting(true);
     setInviteError("");
     try {
-      await api.post(`/projects/${selectedProject}/invite/${selectedDeveloper._id}`, {
-        message: inviteMessage,
-      });
+      await api.post(
+        `/projects/${selectedProject}/invite/${selectedDeveloper._id}`,
+        { message: inviteMessage }
+      );
       setInviteSuccess(true);
       setTimeout(() => setInviteModalOpen(false), 1500);
     } catch (err) {
-      setInviteError(err.response?.data?.message || "Failed to send invitation.");
+      setInviteError(
+        err.response?.data?.message || "Failed to send invitation."
+      );
     } finally {
       setInviting(false);
     }
   };
 
   return (
-    <div className="page-container space-y-8">
-      <div className="section-header">
-        <span className="badge badge-accent mb-2">Talent Discovery</span>
-        <h1 className="section-title">Find & Invite Developers</h1>
-        <p className="section-subtitle">
-          Search for software engineers with verified reputations and invite them to lead or contribute to your challenge.
-        </p>
-      </div>
+    <Container className="py-8">
+      <PageHeader
+        eyebrow="Talent Discovery"
+        title="Find & Invite Developers"
+        description="Search vetted engineers with verified reputations, inspect verified skill profiles, and invite them directly to lead or build your problem challenge."
+      />
 
-      {/* Filter and Search */}
-      <div className="glass-card p-5 space-y-4">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Search by developer name, bio, or keywords..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="input-field pl-10 text-xs"
-            />
-          </div>
-        </div>
+      {/* Filter and Search Bar */}
+      <Card className="mb-8">
+        <CardContent className="p-5 space-y-4">
+          <Input
+            icon={FiSearch}
+            placeholder="Search by engineer name, bio keywords, or domains..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-dark-700/60">
-          <div>
-            <label className="input-label text-xs">Required Skill</label>
-            <input
-              type="text"
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3 border-t border-hairline">
+            <Input
+              label="Required Skill"
               placeholder="e.g. React, Node.js, Python..."
               value={skill}
               onChange={(e) => setSkill(e.target.value)}
-              className="input-field py-2 text-xs"
             />
-          </div>
 
-          <div>
-            <label className="input-label text-xs">Min Completed Projects</label>
-            <input
+            <Input
+              label="Min Projects Completed"
               type="number"
               min="0"
               placeholder="e.g. 2"
               value={minProjects}
               onChange={(e) => setMinProjects(e.target.value)}
-              className="input-field py-2 text-xs"
             />
-          </div>
 
-          <div>
-            <label className="input-label text-xs">Availability</label>
-            <select
+            <Select
+              label="Availability Status"
               value={availability}
               onChange={(e) => setAvailability(e.target.value)}
-              className="select-field py-2 text-xs"
             >
               <option value="">All Developers</option>
               <option value="true">Available Now</option>
-              <option value="false">Busy</option>
-            </select>
+              <option value="false">Busy / Committed</option>
+            </Select>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Developers Grid */}
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="glass-card p-6 space-y-3 animate-pulse">
-              <div className="skeleton-avatar" />
-              <div className="skeleton-title" />
-              <div className="skeleton-text" />
-            </div>
+            <Card key={i} className="animate-pulse p-6">
+              <div className="w-12 h-12 bg-graphite rounded-lg mb-4" />
+              <div className="h-4 bg-graphite rounded w-3/4 mb-2" />
+              <div className="h-3 bg-graphite rounded w-1/2 mb-4" />
+              <div className="h-10 bg-graphite rounded" />
+            </Card>
           ))}
         </div>
       ) : developers.length === 0 ? (
-        <div className="empty-state glass-card p-12">
-          <FiFilter className="empty-state-icon" />
-          <h3 className="text-base font-bold text-white mb-1">No Developers Found</h3>
-          <p className="empty-state-text text-xs">Try loosening your skill or project filters.</p>
-        </div>
+        <Card className="text-center py-16 px-6">
+          <FiFilter className="w-10 h-10 text-iron mx-auto mb-3" />
+          <h3 className="text-base font-semibold text-paper mb-1">
+            No Developers Found
+          </h3>
+          <p className="text-xs text-smoke font-mono">
+            Try loosening your skill or experience filters.
+          </p>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {developers.map((dev) => (
-            <div
+            <Card
               key={dev._id}
-              className="glass-card-hover p-6 flex flex-col justify-between space-y-4"
+              hoverable
+              className="flex flex-col justify-between"
             >
-              <div className="space-y-3">
+              <CardContent className="p-6 space-y-4">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="avatar w-12 h-12 text-base">
-                    {dev.name?.charAt(0) || "D"}
+                  <div className="w-12 h-12 rounded-lg bg-graphite border border-hairline flex items-center justify-center font-mono font-bold text-lime text-base shrink-0">
+                    {dev.name?.charAt(0)?.toUpperCase() || "D"}
                   </div>
                   <div className="text-right">
-                    <span className="text-base font-extrabold text-accent-400 font-display">
+                    <span className="font-mono text-base font-bold text-lime block">
                       {dev.reputation || 0} pts
                     </span>
-                    <span className="text-[10px] text-gray-400 block">
-                      {dev.projectsCompleted || 0} completed • {dev.projectsLed || 0} led
+                    <span className="text-[11px] font-mono text-smoke">
+                      {dev.projectsCompleted || 0} done • {dev.projectsLed || 0} led
                     </span>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-bold text-white hover:text-primary-400 transition truncate">
+                  <h3 className="text-base font-semibold text-paper hover:text-lime transition truncate">
                     <Link to={`/developers/${dev._id}`}>{dev.name}</Link>
                   </h3>
-                  <p className="text-xs text-gray-400 line-clamp-2 mt-1">
+                  <p className="text-xs text-smoke line-clamp-2 mt-1 leading-relaxed">
                     {dev.bio || "Full stack developer ready for civic impact projects."}
                   </p>
                 </div>
@@ -209,115 +221,116 @@ const FindDevelopers = () => {
                 {dev.skills && dev.skills.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {dev.skills.slice(0, 4).map((sk, idx) => (
-                      <span key={idx} className="badge badge-neutral text-[10px] py-0 px-2">
+                      <Badge key={idx} variant="neutral" size="sm">
                         {sk}
-                      </span>
+                      </Badge>
                     ))}
+                    {dev.skills.length > 4 && (
+                      <Badge variant="neutral" size="sm">
+                        +{dev.skills.length - 4}
+                      </Badge>
+                    )}
                   </div>
                 )}
-              </div>
+              </CardContent>
 
-              <div className="pt-4 border-t border-dark-700/60 flex items-center gap-2">
-                <button
+              <div className="px-6 py-4 border-t border-hairline bg-carbon/50 flex items-center gap-2">
+                <Button
+                  variant="primary"
+                  size="sm"
                   onClick={() => handleOpenInvite(dev)}
-                  className="btn-accent btn-sm flex-1 flex items-center justify-center gap-1 text-xs"
+                  className="flex-1"
                 >
                   <FiSend className="w-3.5 h-3.5" />
                   <span>Invite to Problem</span>
-                </button>
-                <Link
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
                   to={`/developers/${dev._id}`}
-                  className="btn-secondary btn-sm text-xs px-3"
                 >
                   Profile
-                </Link>
+                </Button>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}
 
       {/* Invite Modal */}
-      {inviteModalOpen && selectedDeveloper && (
-        <div className="modal-overlay">
-          <div className="modal-content space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-dark-700">
-              <h3 className="text-base font-bold text-white">
-                Invite {selectedDeveloper.name}
-              </h3>
-              <button onClick={() => setInviteModalOpen(false)} className="text-gray-400 hover:text-white">
-                ✕
-              </button>
+      <Modal
+        isOpen={inviteModalOpen && Boolean(selectedDeveloper)}
+        onClose={() => setInviteModalOpen(false)}
+        title={`Invite ${selectedDeveloper?.name || "Developer"}`}
+      >
+        {inviteSuccess ? (
+          <div className="py-8 text-center space-y-3">
+            <FiCheckCircle className="w-12 h-12 text-lime mx-auto animate-bounce" />
+            <p className="text-sm font-semibold text-paper font-mono">
+              Invitation successfully sent to {selectedDeveloper?.name}!
+            </p>
+          </div>
+        ) : (
+          <form onSubmit={handleSendInvite} className="space-y-4">
+            {inviteError && (
+              <div className="p-3 bg-red-950/30 border border-red-500/40 text-red-300 text-xs rounded-button font-mono">
+                {inviteError}
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-mono text-smoke mb-1.5 uppercase tracking-wider">
+                Select Target Challenge / Problem
+              </label>
+              {myProblems.length === 0 ? (
+                <div className="p-4 bg-void border border-hairline rounded-button text-xs text-smoke font-mono">
+                  No active open problems found. Please post a problem first.
+                </div>
+              ) : (
+                <Select
+                  value={selectedProject}
+                  onChange={(e) => setSelectedProject(e.target.value)}
+                  required
+                >
+                  {myProblems.map((p) => (
+                    <option key={p._id} value={p._id}>
+                      {p.title}
+                    </option>
+                  ))}
+                </Select>
+              )}
             </div>
 
-            {inviteSuccess ? (
-              <div className="p-6 text-center space-y-2">
-                <FiCheckCircle className="w-10 h-10 text-emerald-400 mx-auto" />
-                <p className="text-sm font-bold text-white">Invitation Sent!</p>
-              </div>
-            ) : (
-              <form onSubmit={handleSendInvite} className="space-y-4">
-                {inviteError && (
-                  <div className="p-3 bg-red-500/20 border border-red-500/40 text-red-300 text-xs rounded-xl">
-                    {inviteError}
-                  </div>
-                )}
+            <Textarea
+              label="Personal Note (Optional)"
+              rows={3}
+              placeholder="Describe why you'd like this engineer to contribute or lead..."
+              value={inviteMessage}
+              onChange={(e) => setInviteMessage(e.target.value)}
+            />
 
-                <div>
-                  <label className="input-label text-xs">Select Target Challenge / Problem</label>
-                  {myProblems.length === 0 ? (
-                    <p className="text-xs text-gray-400 p-2">
-                      No active open problems found. Post a problem first.
-                    </p>
-                  ) : (
-                    <select
-                      value={selectedProject}
-                      onChange={(e) => setSelectedProject(e.target.value)}
-                      className="select-field text-xs"
-                      required
-                    >
-                      {myProblems.map((p) => (
-                        <option key={p._id} value={p._id}>
-                          {p.title}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-
-                <div>
-                  <label className="input-label text-xs">Personal Note (Optional)</label>
-                  <textarea
-                    rows={3}
-                    placeholder="Describe why you'd like this developer on your team..."
-                    value={inviteMessage}
-                    onChange={(e) => setInviteMessage(e.target.value)}
-                    className="textarea-field text-xs"
-                  />
-                </div>
-
-                <div className="flex justify-end gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setInviteModalOpen(false)}
-                    className="btn-secondary btn-sm"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={inviting || myProblems.length === 0}
-                    className="btn-primary btn-sm"
-                  >
-                    {inviting ? "Sending..." : "Send Invitation"}
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
+            <div className="flex justify-end gap-2 pt-2 border-t border-hairline">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setInviteModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                size="sm"
+                disabled={inviting || myProblems.length === 0}
+              >
+                {inviting ? "Sending..." : "Send Invitation"}
+              </Button>
+            </div>
+          </form>
+        )}
+      </Modal>
+    </Container>
   );
 };
 
